@@ -5,240 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Disdette</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        
-        .filters {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .filter-btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .filter-btn.green {
-            background: #10b981;
-            color: white;
-        }
-        
-        .filter-btn.green:hover {
-            background: #059669;
-        }
-        
-        .filter-btn.red {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .filter-btn.red:hover {
-            background: #dc2626;
-        }
-        
-        .filter-btn.active {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .lista-scadenze {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .scadenza-card {
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-        
-        .scadenza-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .scadenza-card.domani {
-            border-left: 5px solid #10b981;
-            background: #f0fdf4;
-        }
-        
-        .scadenza-card.oggi {
-            border-left: 5px solid #ef4444;
-            background: #fef2f2;
-        }
-        
-        .scadenza-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .scadenza-cliente {
-            font-size: 18px;
-            font-weight: 700;
-            color: #1f2937;
-        }
-        
-        .scadenza-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .scadenza-badge.domani {
-            background: #10b981;
-            color: white;
-        }
-        
-        .scadenza-badge.oggi {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .scadenza-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .info-item {
-            font-size: 14px;
-            color: #4b5563;
-        }
-        
-        .info-label {
-            font-weight: 600;
-            color: #374151;
-        }
-        
-        .scadenza-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-        }
-        
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .checkbox-wrapper input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        
-        .checkbox-wrapper label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
-            cursor: pointer;
-        }
-        
-        .row-number {
-            font-size: 12px;
-            color: #9ca3af;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
-        }
-        
-        .empty-state svg {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 20px;
-            opacity: 0.5;
-        }
-        
-        .message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            display: none;
-        }
-        
-        .message.success {
-            background: #10b981;
-            color: white;
-        }
-        
-        .message.error {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .message.show {
-            display: block;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .filters { display: flex; gap: 15px; margin-bottom: 30px; }
+        .filter-btn { padding: 12px 24px; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .filter-btn.green { background: #10b981; color: white; }
+        .filter-btn.green:hover { background: #059669; }
+        .filter-btn.red { background: #ef4444; color: white; }
+        .filter-btn.red:hover { background: #dc2626; }
+        .filter-btn.active { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .lista-scadenze { display: flex; flex-direction: column; gap: 15px; }
+        .scadenza-card { background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; transition: all 0.3s; }
+        .scadenza-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .scadenza-card.domani { border-left: 5px solid #10b981; background: #f0fdf4; }
+        .scadenza-card.oggi { border-left: 5px solid #ef4444; background: #fef2f2; }
+        .scadenza-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .scadenza-cliente { font-size: 18px; font-weight: 700; color: #1f2937; }
+        .scadenza-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .scadenza-badge.domani { background: #10b981; color: white; }
+        .scadenza-badge.oggi { background: #ef4444; color: white; }
+        .scadenza-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .info-item { font-size: 14px; color: #4b5563; }
+        .info-label { font-weight: 600; color: #374151; }
+        .scadenza-actions { display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #e5e7eb; }
+        .checkbox-wrapper { display: flex; align-items: center; gap: 10px; }
+        .checkbox-wrapper input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .checkbox-wrapper label { font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; }
+        .row-number { font-size: 12px; color: #9ca3af; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
+        .empty-state svg { width: 64px; height: 64px; margin: 0 auto 20px; opacity: 0.5; }
+        .message { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; }
+        .message.success { background: #10b981; color: white; }
+        .message.error { background: #ef4444; color: white; }
+        .message.show { display: block; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -278,7 +82,6 @@
         const btnOggi = document.getElementById('btnOggi');
         const messageBox = document.getElementById('messageBox');
 
-        // Date helper
         function getToday() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -305,7 +108,6 @@
             return d.toLocaleDateString('it-IT');
         }
 
-        // Determina tipo scadenza
         function getScadenzaType(scadenzaCamera) {
             const scadenzaDate = parseDate(scadenzaCamera);
             if (!scadenzaDate) return null;
@@ -324,7 +126,6 @@
             return null;
         }
 
-        // Carica dati
         async function loadData() {
             loading.style.display = 'block';
             listaScadenze.innerHTML = '';
@@ -340,11 +141,9 @@
                     return;
                 }
                 
-                // Parse CSV
                 const headers = rows[0].split(',').map(h => h.trim());
                 allScadenze = [];
                 
-                // Trova tutte le righe per ogni camera e prendi solo l'ultima
                 const cameraMap = new Map();
                 
                 for (let i = rows.length - 1; i > 0; i--) {
@@ -361,7 +160,6 @@
                     
                     if (!numeroCamera || !cliente) continue;
                     
-                    // Prendi solo l'ultima riga (più recente) per ogni camera
                     if (!cameraMap.has(numeroCamera)) {
                         const scadenza = {
                             numeroCamera,
@@ -375,7 +173,6 @@
                             type: getScadenzaType(scadenzaCamera)
                         };
                         
-                        // Includi solo se è oggi o domani
                         if (scadenza.type) {
                             cameraMap.set(numeroCamera, scadenza);
                             allScadenze.push(scadenza);
@@ -399,7 +196,6 @@
             }
         }
 
-        // Render lista
         function renderList() {
             listaScadenze.innerHTML = '';
             
@@ -416,7 +212,6 @@
                 return;
             }
             
-            // Ordina: domani prima, oggi dopo
             filtered.sort((a, b) => {
                 if (a.type === 'domani' && b.type === 'oggi') return -1;
                 if (a.type === 'oggi' && b.type === 'domani') return 1;
@@ -429,7 +224,6 @@
             });
         }
 
-        // Crea card
         function createScadenzaCard(scadenza) {
             const card = document.createElement('div');
             card.className = `scadenza-card ${scadenza.type}`;
@@ -483,75 +277,66 @@
                 params.append('field', 'Disdetta');
                 params.append('value', isChecked ? 'true' : 'false');
                 params.append('callback', callbackName);
+                
                 const script = document.createElement('script');
                 const timeoutId = setTimeout(() => {
                     cleanup();
                     reject(new Error('Timeout JSONP'));
                 }, 15000);
+                
                 function cleanup() {
                     delete window[callbackName];
-                    if (script.parentNode) {
-                        script.parentNode.removeChild(script);
-                    }
+                    if (script.parentNode) script.parentNode.removeChild(script);
                     clearTimeout(timeoutId);
                 }
+                
                 window[callbackName] = (data) => {
                     cleanup();
                     resolve(data);
                 };
+                
                 script.src = `${WEB_APP_URL}?${params.toString()}`;
                 script.async = true;
                 script.onerror = () => {
                     cleanup();
                     reject(new Error('Errore JSONP'));
                 };
+                
                 document.head.appendChild(script);
             });
         }
 
-        // Toggle disdetta
         window.toggleDisdetta = async function(rowNumber, isChecked) {
+            const checkbox = document.querySelector(`input[data-row="${rowNumber}"]`);
+            if (!checkbox) return;
+            
+            const originalValue = !isChecked;
+            checkbox.disabled = true;
+            
             try {
-                const params = new URLSearchParams();
-                params.append('app', 'disdette');
-                params.append('row', String(rowNumber));
-                params.append('field', 'Disdetta');
-                params.append('value', isChecked ? 'true' : 'false');
-
-                let result;
-                try {
-                    params.append('callback', '');
-                    const response = await fetch(WEB_APP_URL + '?' + params.toString(), {
-                        method: 'GET'
-                    });
-                    const text = await response.text();
-                    result = text ? JSON.parse(text) : null;
-                    if (!result || !result.success) {
-                        throw new Error((result && result.error) || 'Errore aggiornamento');
-                    }
-                } catch (primaryError) {
-                    result = await jsonpUpdateDisdetta(rowNumber, isChecked);
-                    if (!result || !result.success) {
-                        throw new Error((result && result.error) || 'Errore aggiornamento');
-                    }
+                const result = await jsonpUpdateDisdetta(rowNumber, isChecked);
+                
+                if (!result || !result.success) {
+                    throw new Error((result && result.error) || 'Errore aggiornamento');
                 }
-
+                
                 showMessage('✓ Disdetta aggiornata con successo', 'success');
+                
                 const scadenza = allScadenze.find(s => s.rowNumber === rowNumber);
                 if (scadenza) {
                     scadenza.disdetta = isChecked;
                 }
+                
             } catch (error) {
                 console.error('Errore:', error);
                 showMessage('Errore aggiornamento: ' + error.message, 'error');
-                const checkbox = document.querySelector(`input[data-row="${rowNumber}"]`);
-                if (checkbox) {
-                    checkbox.checked = !isChecked;
-                }
+                checkbox.checked = originalValue;
+                
+            } finally {
+                checkbox.disabled = false;
             }
         };
 
-        // Empty state
         function showEmptyState(message) {
             listaScadenze.innerHTML = `
                 <div class="empty-state">
@@ -563,7 +348,6 @@
             `;
         }
 
-        // Show message
         function showMessage(text, type) {
             messageBox.textContent = text;
             messageBox.className = `message ${type} show`;
@@ -572,7 +356,6 @@
             }, 3000);
         }
 
-        // Filtri
         btnDomani.addEventListener('click', () => {
             currentFilter = currentFilter === 'domani' ? 'all' : 'domani';
             btnDomani.classList.toggle('active');
@@ -587,7 +370,6 @@
             renderList();
         });
 
-        // Init
         loadData();
     </script>
 </body>
