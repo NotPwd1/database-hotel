@@ -5,206 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stato Camere Hotel</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Pannello sinistro - Lista camere */
-        .panel-camere {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .panel-camere h2 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-
-        .camere-lista {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .camera-card {
-            padding: 12px;
-            border-radius: 6px;
-            border: 2px solid #e0e0e0;
-            text-align: center;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s;
-            cursor: default;
-        }
-
-        .camera-card.libera {
-            background-color: #d4edda;
-            border-color: #28a745;
-            color: #155724;
-        }
-
-        .camera-card.occupata {
-            background-color: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
-
-        .camera-numero {
-            display: block;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        .camera-stato {
-            display: block;
-            font-size: 11px;
-            opacity: 0.8;
-        }
-
-        /* Pannelli destri - Statistiche */
-        .stats-container {
-            display: grid;
-            grid-template-rows: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .stat-panel {
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .stat-panel.libere {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 2px solid #28a745;
-        }
-
-        .stat-panel.occupate {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border: 2px solid #dc3545;
-        }
-
-        .stat-panel.totale {
-            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-            border: 2px solid #17a2b8;
-        }
-
-        .stat-numero {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .stat-panel.libere .stat-numero {
-            color: #155724;
-        }
-
-        .stat-panel.occupate .stat-numero {
-            color: #721c24;
-        }
-
-        .stat-panel.totale .stat-numero {
-            color: #0c5460;
-        }
-
-        /* Scrollbar personalizzata */
-        .camere-lista::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .camere-lista::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .camere-lista::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .camere-lista::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        /* Page header styles (shared) */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 18px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 0 20px;
-        }
-        .page-header-left h1 {
-            font-size: 34px;
-            color: #22303b;
-            margin-bottom: 8px;
-            font-weight: 800;
-        }
-        .page-subtitle {
-            color: #6b7280;
-            font-size: 16px;
-            margin-top: 2px;
-        }
-        .page-header-right .small-note {
-            font-size: 12px;
-            color: #9ca3af;
-            text-align: right;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .dashboard { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .panel-camere { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .panel-camere h2 { color: #333; margin-bottom: 15px; font-size: 18px; }
+        .camere-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 500px; overflow-y: auto; }
+        .camera-card { padding: 12px; border-radius: 6px; border: 2px solid #e0e0e0; text-align: center; font-weight: 600; font-size: 13px; transition: all 0.3s; cursor: default; }
+        .camera-card.libera { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .camera-card.occupata { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .camera-numero { display: block; font-size: 16px; margin-bottom: 4px; }
+        .camera-stato { display: block; font-size: 11px; opacity: 0.8; }
+        .stats-container { display: grid; grid-template-rows: repeat(3, 1fr); gap: 20px; }
+        .stat-panel { border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .stat-panel.libere { background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 2px solid #28a745; }
+        .stat-panel.occupate { background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border: 2px solid #dc3545; }
+        .stat-panel.totale { background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border: 2px solid #17a2b8; }
+        .stat-numero { font-size: 48px; font-weight: 700; margin-bottom: 8px; }
+        .stat-label { font-size: 14px; font-weight: 600; color: #333; }
+        .stat-panel.libere .stat-numero { color: #155724; }
+        .stat-panel.occupate .stat-numero { color: #721c24; }
+        .stat-panel.totale .stat-numero { color: #0c5460; }
+        .camere-lista::-webkit-scrollbar { width: 8px; }
+        .camere-lista::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .camere-lista::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .camere-lista::-webkit-scrollbar-thumb:hover { background: #555; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        .page-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; max-width: 1200px; margin-left: auto; margin-right: auto; padding: 0 20px; }
+        .page-header-left h1 { font-size: 34px; color: #22303b; margin-bottom: 8px; font-weight: 800; }
+        .page-subtitle { color: #6b7280; font-size: 16px; margin-top: 2px; }
+        .page-header-right .small-note { font-size: 12px; color: #9ca3af; text-align: right; }
         @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            .camere-lista {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            }
+            .dashboard { grid-template-columns: 1fr; }
+            .camere-lista { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
         }
     </style>
 </head>
 <body>
-    <!-- Page header / intro -->
     <header class="page-header">
         <div class="page-header-left">
             <h1>Salty Sands Hotel</h1>
@@ -216,7 +53,6 @@
     </header>
 
     <div class="dashboard">
-        <!-- Pannello sinistro - Lista camere -->
         <div class="panel-camere">
             <h2>📋 Stato Camere</h2>
             <div class="camere-lista" id="camereLista">
@@ -224,18 +60,15 @@
             </div>
         </div>
 
-        <!-- Pannelli destri - Statistiche -->
         <div class="stats-container">
             <div class="stat-panel libere">
                 <div class="stat-numero" id="libereCount">0</div>
                 <div class="stat-label">Camere Libere</div>
             </div>
-
             <div class="stat-panel occupate">
                 <div class="stat-numero" id="occupateCount">0</div>
                 <div class="stat-label">Camere Occupate</div>
             </div>
-
             <div class="stat-panel totale">
                 <div class="stat-numero" id="totaleCount">0</div>
                 <div class="stat-label">Camere Totali</div>
@@ -244,10 +77,10 @@
     </div>
 
     <script>
-        // Configurazione
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
+        const PRENOTAZIONI_GID = '1372958227';
+        const DISDETTE_GID = '692494043';
 
-        // Dati camere
         const cameraData = {
             'Essential': [1, 2, 3, 100, 101, 102, 200, 201, 202, 300, 301, 302, 400, 401, 402, 500, 501, 502, 600, 601, 602, 700, 701, 702, 800, 801, 802],
             'Classic': [4, 6, 8, 9, 103, 104, 105, 106, 107, 108, 109, 110, 203, 205, 207, 209, 303, 304, 305, 306, 307, 308, 309, 310, 403, 405, 407, 409, 503, 504, 505, 506, 507, 508, 509, 510, 603, 605, 607, 609, 703, 704, 705, 706, 707, 708, 709, 710, 803, 805, 807, 809],
@@ -257,7 +90,6 @@
             'Divinity': [901, 902]
         };
 
-        // Creo lista di tutte le camere
         const allCameras = [];
         Object.keys(cameraData).forEach(tipo => {
             cameraData[tipo].forEach(camera => {
@@ -268,76 +100,58 @@
 
         async function loadRoomStatus() {
             const camereLista = document.getElementById('camereLista');
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
-
+            
             try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const rows = csvText.split('\n');
-
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                const occupiedCameras = new Set();
+                // STEP 1: Carica le prenotazioni
+                const prenotazioniUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${PRENOTAZIONI_GID}`;
+                const prenotazioniResp = await fetch(prenotazioniUrl);
+                const prenotazioniText = await prenotazioniResp.text();
+                const prenotazioniRows = prenotazioniText.split('\n');
 
-                // Leggo le camere occupate dal foglio
-                for (let i = 1; i < rows.length; i++) {
-                    if (!rows[i].trim()) continue;
+                const camereConPrenotazioneAttiva = new Set();
 
-                    const cols = rows[i].split(',');
+                for (let i = 1; i < prenotazioniRows.length; i++) {
+                    if (!prenotazioniRows[i].trim()) continue;
+
+                    const cols = prenotazioniRows[i].split(',');
                     const numeroCameraStr = cols[0]?.trim();
                     const checkOutStr = cols[6]?.trim();
 
                     if (numeroCameraStr && checkOutStr) {
                         const checkOutDate = new Date(checkOutStr);
+                        checkOutDate.setHours(0, 0, 0, 0);
 
+                        // Se check-out >= oggi, la camera ha una prenotazione attiva
                         if (!isNaN(checkOutDate) && checkOutDate >= today) {
-                            occupiedCameras.add(numeroCameraStr);
+                            camereConPrenotazioneAttiva.add(numeroCameraStr);
                         }
                     }
                 }
 
-                // Calcolo statistiche
-                let libere = 0;
-                let occupate = 0;
+                // STEP 2: Carica le disdette
+                const disdetteUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${DISDETTE_GID}`;
+                const disdetteResp = await fetch(disdetteUrl);
+                const disdetteText = await disdetteResp.text();
+                const disdetteRows = disdetteText.split('\n');
 
-                camereLista.innerHTML = '';
+                const camereDisdette = new Map();
 
-                allCameras.forEach(camera => {
-                    const isOccupied = occupiedCameras.has(camera.toString());
-                    const stato = isOccupied ? 'occupata' : 'libera';
+                // Prendi l'ultima riga per ogni camera (la più recente)
+                for (let i = disdetteRows.length - 1; i > 0; i--) {
+                    if (!disdetteRows[i].trim()) continue;
 
-                    if (isOccupied) {
-                        occupate++;
-                    } else {
-                        libere++;
+                    const cols = disdetteRows[i].split(',');
+                    const numeroCamera = cols[0]?.trim();
+                    const disdetta = cols[4]?.trim().toUpperCase() === 'TRUE';
+
+                    if (numeroCamera && !camereDisdette.has(numeroCamera)) {
+                        camereDisdette.set(numeroCamera, disdetta);
                     }
+                }
 
-                    const card = document.createElement('div');
-                    card.className = `camera-card ${stato}`;
-                    card.innerHTML = `
-                        <span class="camera-numero">${camera}</span>
-                        <span class="camera-stato">${isOccupied ? '🔒 Occupata' : '✓ Libera'}</span>
-                    `;
-                    camereLista.appendChild(card);
-                });
-
-                // Aggiorno i numeri
-                document.getElementById('libereCount').textContent = libere;
-                document.getElementById('occupateCount').textContent = occupate;
-                document.getElementById('totaleCount').textContent = allCameras.length;
-
-            } catch (error) {
-                camereLista.innerHTML = '<div class="loading">Errore nel caricamento dei dati</div>';
-                console.error('Errore:', error);
-            }
-        }
-
-        // Carico i dati al caricamento
-        loadRoomStatus();
-
-        // Aggiorno ogni 30 secondi
-        setInterval(loadRoomStatus, 30000);
-    </script>
-</body>
-</html>
+                // STEP 3: Determina stato finale
+                // Camera OCCUPATA se: ha prenotazione attiva E (non ha disdetta O disdetta = FALSE)
+                // Camera LIBERA se: non ha prenotazione attiva
