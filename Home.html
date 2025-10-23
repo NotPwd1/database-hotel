@@ -154,4 +154,55 @@
 
                 // STEP 3: Determina stato finale
                 // Camera OCCUPATA se: ha prenotazione attiva E (non ha disdetta O disdetta = FALSE)
-                // Camera LIBERA se: non ha prenotazione attiva
+                // Camera LIBERA se: non ha prenotazione attiva O disdetta = TRUE
+                const occupiedCameras = new Set();
+
+                camereConPrenotazioneAttiva.forEach(camera => {
+                    const hasDisdetta = camereDisdette.get(camera) === true;
+                    
+                    // Se NON è stata disdetta, la camera è occupata
+                    if (!hasDisdetta) {
+                        occupiedCameras.add(camera);
+                    }
+                });
+
+                // STEP 4: Rendering
+                let libere = 0;
+                let occupate = 0;
+
+                camereLista.innerHTML = '';
+
+                allCameras.forEach(camera => {
+                    const isOccupied = occupiedCameras.has(camera.toString());
+                    const stato = isOccupied ? 'occupata' : 'libera';
+
+                    if (isOccupied) {
+                        occupate++;
+                    } else {
+                        libere++;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `camera-card ${stato}`;
+                    card.innerHTML = `
+                        <span class="camera-numero">${camera}</span>
+                        <span class="camera-stato">${isOccupied ? '🔒 Occupata' : '✓ Libera'}</span>
+                    `;
+                    camereLista.appendChild(card);
+                });
+
+                document.getElementById('libereCount').textContent = libere;
+                document.getElementById('occupateCount').textContent = occupate;
+                document.getElementById('totaleCount').textContent = allCameras.length;
+
+            } catch (error) {
+                camereLista.innerHTML = '<div class="loading">Errore nel caricamento dei dati</div>';
+                console.error('Errore:', error);
+            }
+        }
+
+        loadRoomStatus();
+        setInterval(loadRoomStatus, 30000);
+    </script>
+</body>
+</html>
