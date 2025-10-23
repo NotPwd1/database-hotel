@@ -5,188 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione Hotel</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
-        }
-        
-        .form-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        input[type="text"],
-        input[type="date"],
-        input[type="number"],
-        select {
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        input[type="text"]:focus,
-        input[type="date"]:focus,
-        input[type="number"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #576c7e;
-        }
-        
-        input[type="text"]:disabled,
-        input[type="number"]:disabled,
-        select:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-        
-        button {
-            padding: 14px;
-            background: #576c7e;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(87, 108, 126, 0.4);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .export-btn {
-            background: #999;
-        }
-        
-        .export-btn:hover {
-            box-shadow: 0 5px 20px rgba(153, 153, 153, 0.4);
-        }
-        
-        .button-wrapper {
-            grid-column: 1 / -1;
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .button-wrapper button {
-            flex: 1;
-        }
-        
-        .message {
-            grid-column: 1 / -1;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            text-align: center;
-            font-weight: 600;
-            display: none;
-        }
-        
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            display: block;
-        }
-
-        /* --- STILE RIEPILOGO PRENOTAZIONE --- */
-        #riepilogoPrenotazione {
-            grid-column: 1 / -1;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-
-        #riepilogoDettagli {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #eee;
-            font-size: 14px;
-        }
-
-        #riepilogoTotale {
-            font-size: 18px;
-            font-weight: 700;
-            text-align: right;
-            color: #576c7e;
-        }
-        /* Page header styles */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 18px;
-        }
-        .page-header-left h1 {
-            font-size: 34px;
-            color: #22303b;
-            margin-bottom: 8px;
-            font-weight: 800;
-        }
-        .page-subtitle {
-            color: #6b7280;
-            font-size: 16px;
-            margin-top: 2px;
-        }
-        .page-header-right {
-            font-size: 12px;
-            color: #9ca3af;
-            text-align: right;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+        .form-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; font-size: 14px; }
+        input[type="text"], input[type="date"], input[type="number"], select { padding: 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; transition: border-color 0.3s; }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: #576c7e; }
+        input[type="text"]:disabled, input[type="number"]:disabled, select:disabled { background-color: #f5f5f5; cursor: not-allowed; }
+        button { padding: 14px; background: #576c7e; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(87, 108, 126, 0.4); }
+        button:active { transform: translateY(0); }
+        .export-btn { background: #999; }
+        .export-btn:hover { box-shadow: 0 5px 20px rgba(153, 153, 153, 0.4); }
+        .button-wrapper { grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 10px; }
+        .button-wrapper button { flex: 1; }
+        .message { grid-column: 1 / -1; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; font-weight: 600; display: none; }
+        .message.success { background-color: #d4edda; color: #155724; display: block; }
+        .message.error { background-color: #f8d7da; color: #721c24; display: block; }
+        #riepilogoPrenotazione { grid-column: 1 / -1; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9; }
+        #riepilogoDettagli { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #eee; font-size: 14px; }
+        #riepilogoTotale { font-size: 18px; font-weight: 700; text-align: right; color: #576c7e; }
+        .page-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+        .page-header-left h1 { font-size: 34px; color: #22303b; margin-bottom: 8px; font-weight: 800; }
+        .page-subtitle { color: #6b7280; font-size: 16px; margin-top: 2px; }
+        .page-header-right { font-size: 12px; color: #9ca3af; text-align: right; }
     </style>
 </head>
 <body>
-    <!-- Page header / intro -->
     <header class="page-header">
         <div class="page-header-left">
             <h1>Prenota</h1>
             <p class="page-subtitle">Registra e gestisci le prenotazioni in tempo reale.</p>
         </div>
-        <div class="page-header-right" aria-hidden="true">
-            <!-- reserved for small contextual notes -->
-        </div>
+        <div class="page-header-right"></div>
     </header>
 
     <form id="hotelForm">
@@ -249,7 +102,7 @@
                 <label for="dipendente">Dipendente *</label>
                 <select id="dipendente" name="dipendente" required>
                     <option value="">-- Seleziona --</option>
-                    </select>
+                </select>
             </div>
 
             <div id="riepilogoPrenotazione">
@@ -267,21 +120,17 @@
                 <button type="submit" class="submit-btn">Registra</button>
                 <button type="button" id="exportBtn" class="export-btn">Esporta</button>
             </div>
-            
-
 
             <div id="message" class="message"></div>
         </div>
     </form>
 
     <script>
-        // --------------------------------------------------------------------------------------------------
-        // *** CONFIGURAZIONE - INCOLLA I TUOI VALORI CORRETTI QUI ***
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec';
-        const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50'; 
-        // --------------------------------------------------------------------------------------------------
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec';
+        const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
+        const PRENOTAZIONI_GID = '1372958227';
+        const DISDETTE_GID = '692494043';
 
-        // Mappatura Tipi di Camera
         const cameraData = {
             'Essential': [1, 2, 3, 100, 101, 102, 200, 201, 202, 300, 301, 302, 400, 401, 402, 500, 501, 502, 600, 601, 602, 700, 701, 702, 800, 801, 802],
             'Classic': [4, 6, 8, 9, 103, 104, 105, 106, 107, 108, 109, 110, 203, 205, 207, 209, 303, 304, 305, 306, 307, 308, 309, 310, 403, 405, 407, 409, 503, 504, 505, 506, 507, 508, 509, 510, 603, 605, 607, 609, 703, 704, 705, 706, 707, 708, 709, 710, 803, 805, 807, 809],
@@ -291,7 +140,6 @@
             'Divinity': [901, 902]
         };
 
-        // *** MAPPATURA PREZZI ***
         const prezziCamere = {
             'Essential': 85.00,
             'Classic': 110.00,
@@ -302,7 +150,7 @@
         };
 
         const prezziPolizzeBase = {
-            '//': 0.00, 
+            '//': 0.00,
             'Corallo': 125.00,
             'Smeraldo': 650.00,
             'Oceano': 1275.00,
@@ -324,14 +172,12 @@
         const polizza = document.getElementById('polizza');
         const giorniPoseidon = document.getElementById('giorniPoseidon');
         const messageDiv = document.getElementById('message');
-        const dipendenteSelect = document.getElementById('dipendente'); // Riferimento al menu dipendenti
+        const dipendenteSelect = document.getElementById('dipendente');
         
-        // Elementi del riepilogo
         const prezzoCameraRiassunto = document.getElementById('prezzoCameraRiassunto');
         const prezzoPolizzaRiassunto = document.getElementById('prezzoPolizzaRiassunto');
         const totaleRiassunto = document.getElementById('totaleRiassunto');
 
-        // Formattazione valuta (Italiano)
         const formatter = new Intl.NumberFormat('it-IT', {
             style: 'currency',
             currency: 'EUR',
@@ -339,7 +185,6 @@
             maximumFractionDigits: 2,
         });
 
-        // Popola il menu Numero Camera
         const allCameras = Object.keys(cameraTipo).sort((a, b) => parseInt(a) - parseInt(b));
         allCameras.forEach(camera => {
             const option = document.createElement('option');
@@ -348,49 +193,37 @@
             numeroCamera.appendChild(option);
         });
 
-        // -----------------------------------------------------------------------------------
-        // NUOVA FUNZIONE: CARICA DIPENDENTI DAL FOGLIO GOOGLE (GID: 663672816)
-        // -----------------------------------------------------------------------------------
         async function loadDipendenti() {
-            // GID del foglio Dipendenti
-            const gidDipendenti = '663672816'; 
+            const gidDipendenti = '663672816';
             const csvUrlDipendenti = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gidDipendenti}`;
             
             try {
                 const response = await fetch(csvUrlDipendenti);
                 const csvText = await response.text();
-                // Filtra righe vuote e separa per riga
                 const rows = csvText.split('\n').filter(row => row.trim() !== '');
 
-                // detect header columns (flexible): look for 'mail' and 'nome'
                 const headerCols = rows[0].split(',').map(h => h.trim().toLowerCase());
                 let idxName = headerCols.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('nomin'));
                 let idxMail = headerCols.findIndex(h => h.includes('mail') || h.includes('e-mail'));
                 if (idxName === -1) idxName = 0;
-                if (idxMail === -1) idxMail = 1; // best-effort fallback
+                if (idxMail === -1) idxMail = 1;
                 
-                // Tenta di ottenere l'email dell'utente corrente
                 try {
-                    // Richiesta per ottenere l'email dell'utente corrente
                     const userEmailResponse = await fetch(`${webAppUrl}?app=getUserEmail`);
                     const userEmailData = await userEmailResponse.json();
                     if (userEmailData && userEmailData.email) {
                         window.currentUserEmail = userEmailData.email;
-                        console.log("Email utente corrente:", window.currentUserEmail);
                     }
                 } catch (error) {
                     console.error("Impossibile ottenere l'email dell'utente:", error);
                 }
 
-                // Itera sulle righe (saltando l'intestazione, riga 0)
                 for (let i = 1; i < rows.length; i++) {
                     const cols = rows[i].split(',');
                     const nomeDipendente = (cols[idxName] || cols[0] || '').trim();
-                    const mailDipendente = (cols[idxMail] || '').trim();
 
-                    if (nomeDipendente || mailDipendente) {
+                    if (nomeDipendente) {
                         const option = document.createElement('option');
-                        // use email as value when available, otherwise fall back to name
                         option.value = nomeDipendente;
                         option.textContent = nomeDipendente;
                         dipendenteSelect.appendChild(option);
@@ -398,35 +231,21 @@
                 }
                 
             } catch (error) {
-                console.error('Errore nel caricamento dei dipendenti (Controlla il GID e che il Foglio sia Pubblico):', error);
+                console.error('Errore nel caricamento dei dipendenti:', error);
             }
-            // aggiorna il campo elaborato da
-            const elaboratoBy = document.getElementById('elaboratoBy');
-            if (elaboratoBy) elaboratoBy.textContent = dipendenteSelect.selectedOptions[0]?.textContent || dipendenteSelect.value || '--';
         }
         
-        // Esegue il caricamento dei dipendenti all'avvio
-        setTimeout(loadDipendenti, 100); 
+        setTimeout(loadDipendenti, 100);
 
-        dipendenteSelect.addEventListener('change', function() {
-            const elaboratoBy = document.getElementById('elaboratoBy');
-            if (elaboratoBy) elaboratoBy.textContent = this.value || '--';
-        });
-
-        // -----------------------------------------------------------------------------------
-        // FUNZIONE: AGGIORNA RIEPILOGO PRENOTAZIONE (Logica Prezzi)
-        // -----------------------------------------------------------------------------------
         function updateSummary() {
             const selectedCamera = numeroCamera.value;
             const tipoCamera = selectedCamera ? cameraTipo[selectedCamera] : null;
             const selectedPolizza = polizza.value;
             const giorniExtraPoseidon = parseInt(giorniPoseidon.value) || 0;
 
-            // nightly price for the selected room type
             let prezzoCamera = tipoCamera ? prezziCamere[tipoCamera] : 0.00;
             let prezzoPolizza = prezziPolizzeBase[selectedPolizza] || 0.00;
 
-            // Logica specifica per Polizza Poseidon (unchanged)
             if (selectedPolizza === 'Poseidon') {
                 let giorniAggiuntivi = Math.max(0, giorniExtraPoseidon - 1);
                 let incrementoGiornaliero = 1275.00 * 0.02;
@@ -434,28 +253,18 @@
                 prezzoPolizza = prezziPolizzeBase['Poseidon'] + costoAggiuntivo;
             }
 
-            // number of nights (totaleGiorni represents total nights)
             const nights = parseInt(totaleGiorni.value) || 0;
-
-            // base room total = nightly price * nights
             let roomBaseTotal = prezzoCamera * nights;
 
-            // apply 35% surcharge for bookings longer than 30 nights
             let surcharge = 0;
             if (nights > 30) {
-                // surcharge rounded down to cents
                 surcharge = Math.floor(roomBaseTotal * 0.35 * 100) / 100;
             }
 
-            // final room total after surcharge
             const roomTotal = Math.floor((roomBaseTotal + surcharge) * 100) / 100;
-
-            // total booking price = room total + policy price
             const totale = Math.floor((roomTotal + prezzoPolizza) * 100) / 100;
 
-            // Aggiorna gli elementi HTML
             document.getElementById('cameraRiassunto').textContent = selectedCamera || "--";
-            // per-night price shown as before
             prezzoCameraRiassunto.textContent = formatter.format(roomTotal);
             prezzoPolizzaRiassunto.textContent = formatter.format(prezzoPolizza);
             totaleRiassunto.textContent = formatter.format(totale);
@@ -464,7 +273,7 @@
         polizza.addEventListener('change', function() {
             if (this.value === 'Poseidon') {
                 giorniPoseidon.disabled = false;
-                if (parseInt(giorniPoseidon.value) < 1) { 
+                if (parseInt(giorniPoseidon.value) < 1) {
                     giorniPoseidon.value = '1';
                 }
             } else {
@@ -476,9 +285,9 @@
 
         giorniPoseidon.addEventListener('input', function() {
             if (polizza.value === 'Poseidon' && (parseInt(this.value) < 1 || this.value === '')) {
-                this.value = '1'; 
+                this.value = '1';
             }
-            updateSummary(); 
+            updateSummary();
         });
 
         numeroCamera.addEventListener('change', updateSummary);
@@ -502,9 +311,8 @@
         }
 
         checkIn.addEventListener('change', calculateCheckOut);
-    totaleGiorni.addEventListener('change', calculateCheckOut);
-    // update summary live when number of nights changes
-    totaleGiorni.addEventListener('input', updateSummary);
+        totaleGiorni.addEventListener('change', calculateCheckOut);
+        totaleGiorni.addEventListener('input', updateSummary);
         
         form.addEventListener('reset', () => {
             setTimeout(() => {
@@ -512,11 +320,9 @@
                 giorniPoseidon.disabled = true;
                 giorniPoseidon.value = '0';
                 updateSummary();
-            }, 50); 
+            }, 50);
         });
 
-
-        // Funzione per caricare le camere occupate
         async function loadOccupiedCameras() {
             const options = numeroCamera.querySelectorAll('option');
             options.forEach(option => {
@@ -524,55 +330,82 @@
                 option.textContent = option.textContent.replace(' [OCCUPATA]', '');
             });
 
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=1372958227`;
-            
             try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const rows = csvText.split('\n');
-                
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+
+                // Carica prenotazioni
+                const prenotazioniUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${PRENOTAZIONI_GID}`;
+                const prenotazioniResp = await fetch(prenotazioniUrl);
+                const prenotazioniText = await prenotazioniResp.text();
+                const prenotazioniRows = prenotazioniText.split('\n');
                 
-                const occupiedCameras = new Set();
+                const camereConPrenotazioneAttiva = new Set();
                 
-                // Camera=cols[0] (Colonna A), Check-out=cols[6] (Colonna G)
-                for (let i = 1; i < rows.length; i++) { 
-                    if (!rows[i].trim()) continue;
+                for (let i = 1; i < prenotazioniRows.length; i++) {
+                    if (!prenotazioniRows[i].trim()) continue;
                     
-                    const cols = rows[i].split(',');
+                    const cols = prenotazioniRows[i].split(',');
                     const numeroCameraStr = cols[0]?.trim();
-                    const checkOutStr = cols[6]?.trim(); 
+                    const checkOutStr = cols[6]?.trim();
                     
                     if (numeroCameraStr && checkOutStr) {
                         const checkOutDate = new Date(checkOutStr);
+                        checkOutDate.setHours(0, 0, 0, 0);
                         
-                        // Se check-out è maggiore o uguale a oggi, la camera è occupata
-                        if (!isNaN(checkOutDate) && checkOutDate >= today) { 
-                            occupiedCameras.add(numeroCameraStr);
+                        if (!isNaN(checkOutDate) && checkOutDate >= today) {
+                            camereConPrenotazioneAttiva.add(numeroCameraStr);
                         }
                     }
                 }
+
+                // Carica disdette
+                const disdetteUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${DISDETTE_GID}`;
+                const disdetteResp = await fetch(disdetteUrl);
+                const disdetteText = await disdetteResp.text();
+                const disdetteRows = disdetteText.split('\n');
+
+                const camereDisdette = new Map();
+
+                for (let i = disdetteRows.length - 1; i > 0; i--) {
+                    if (!disdetteRows[i].trim()) continue;
+
+                    const cols = disdetteRows[i].split(',');
+                    const numeroCamera = cols[0]?.trim();
+                    const disdetta = cols[4]?.trim().toUpperCase() === 'TRUE';
+
+                    if (numeroCamera && !camereDisdette.has(numeroCamera)) {
+                        camereDisdette.set(numeroCamera, disdetta);
+                    }
+                }
+
+                // Determina camere occupate
+                const occupiedCameras = new Set();
+
+                camereConPrenotazioneAttiva.forEach(camera => {
+                    const hasDisdetta = camereDisdette.get(camera) === true;
+                    
+                    if (!hasDisdetta) {
+                        occupiedCameras.add(camera);
+                    }
+                });
                 
                 options.forEach(option => {
                     if (option.value && occupiedCameras.has(option.value)) {
                         option.disabled = true;
-                        if (!option.textContent.includes(' [OCCUPATA]')) { 
+                        if (!option.textContent.includes(' [OCCUPATA]')) {
                             option.textContent += ' [OCCUPATA]';
                         }
                     }
                 });
             } catch (error) {
-                console.error('Errore nel caricamento camere occupate (Controlla che il Foglio sia Pubblico):', error);
+                console.error('Errore nel caricamento camere occupate:', error);
             }
-            updateSummary(); // Aggiorna riepilogo
+            updateSummary();
         }
 
         setTimeout(loadOccupiedCameras, 500);
 
-        // -----------------------------------------------------------------------------------
-        // LOGICA DI INVIO - INVIA TOTALE PRENOTAZIONE
-        // -----------------------------------------------------------------------------------
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -585,7 +418,6 @@
                 return;
             }
             
-            // Creiamo manualmente l'oggetto dati
             const dataToSend = {
                 numeroCamera: numeroCamera.value,
                 cliente: document.getElementById('cliente').value,
@@ -595,21 +427,17 @@
                 checkIn: checkIn.value,
                 checkOut: checkOut.value,
                 polizza: polizza.value,
-                    dipendente: dipendenteSelect.value,
-                    elaboratoDa: window.currentUserEmail || dipendenteSelect.value,
+                dipendente: dipendenteSelect.value,
+                elaboratoDa: window.currentUserEmail || dipendenteSelect.value,
                 giorniPoseidon: giorniPoseidon.value,
-                
-                // Campi prezzo formattati
                 prezzoCamera: prezzoCameraRiassunto.textContent,
                 prezzoPolizza: prezzoPolizzaRiassunto.textContent,
-                // Campo richiesto
-                totalePrenotazione: totaleRiassunto.textContent 
+                totalePrenotazione: totaleRiassunto.textContent
             };
 
             const urlEncodedData = new URLSearchParams(dataToSend);
 
             try {
-                // Invio form-encoded con app=prenotazioni e append=true
                 const response = await fetch(webAppUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -619,11 +447,10 @@
                 messageDiv.textContent = '✓ Registrazione salvata con successo!';
                 messageDiv.className = 'message success';
                 
-                form.reset(); 
+                form.reset();
                 
-                // Ricarica per aggiornare stato
                 setTimeout(loadDipendenti, 500);
-                setTimeout(loadOccupiedCameras, 1000); 
+                setTimeout(loadOccupiedCameras, 1000);
                 
                 setTimeout(() => { messageDiv.className = 'message'; }, 4000);
             } catch (error) {
@@ -634,7 +461,6 @@
                 setTimeout(() => { messageDiv.className = 'message'; }, 4000);
             }
         });
-        // -----------------------------------------------------------------------------------
     </script>
 </body>
 </html>
