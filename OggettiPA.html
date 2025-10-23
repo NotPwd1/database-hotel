@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stato Registrazioni PA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+    .tag { padding: 4px 10px; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
+    .bg-tutti-custom { background-color: #c5e8ed; }
+    .bg-attiva-custom { background-color: #c9e8d0; }
+    .bg-scaduta-custom { background-color: #f7cdd1; }
+    .count-badge-tutti { color: #576c7e; }
+    .count-badge-attiva { color: #10B981; }
+    .count-badge-scaduta { color: #EF4444; }
+    .count-badge-riconsegnata { color: #6B7280; }
+    /* Nuovi stili per il layout dei filtri e della ricerca */
+    @media (max-width: 768px) {
+        /* I pulsanti filtro occupano la larghezza intera e vanno a capo su mobile */
+        .filter-group-mobile {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .filter-btn {
+            flex-grow: 1; /* Permette ai pulsanti di espandersi */
+        }
+    }
+    @media (min-width: 769px) {
+        .filter-btn {
+            min-width: 100px;
+        }
+        .search-container {
+            flex-grow: 1;
+            min-width: 200px;
+        }
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-8">
+  <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
+    <h1 class="text-3xl font-extrabold text-gray-800 mb-2">Stato Oggetti in Custodia</h1>
+    <p class="text-gray-500 mb-6">Visualizza, filtra e cerca le registrazioni in tempo reale.</p>
+
+    <!-- Nuovo Layout: Filtri e Barra di Ricerca in linea -->
+    <div class="flex flex-wrap items-center gap-3 mb-8 filter-group-mobile">
+      <button data-filter="Tutti" class="filter-btn bg-tutti-custom text-gray-800 py-2 px-4 rounded-lg font-semibold shadow-md transition duration-200 hover:bg-opacity-90 ring-2 ring-transparent ring-offset-2 ring-offset-white active flex justify-center items-center ring-[#576c7e]">
+        <span class="text-sm">Tutti</span>
+        <span data-count-for="Tutti" class="count-badge text-xs bg-white count-badge-tutti px-2 rounded-full font-bold ml-2">0</span>
+      </button>
+      <button data-filter="Attiva" class="filter-btn bg-attiva-custom text-gray-800 py-2 px-4 rounded-lg font-semibold shadow-md transition duration-200 hover:bg-opacity-90 ring-2 ring-transparent ring-offset-2 ring-offset-white flex justify-center items-center">
+        <span class="text-sm">Attive</span>
+        <span data-count-for="Attiva" class="count-badge text-xs bg-white count-badge-attiva px-2 rounded-full font-bold ml-2">0</span>
+      </button>
+      <button data-filter="Scaduta" class="filter-btn bg-scaduta-custom text-gray-800 py-2 px-4 rounded-lg font-semibold shadow-md transition duration-200 hover:bg-opacity-90 ring-2 ring-transparent ring-offset-2 ring-offset-white flex justify-center items-center">
+        <span class="text-sm">Scadute</span>
+        <span data-count-for="Scaduta" class="count-badge text-xs bg-white count-badge-scaduta px-2 rounded-full font-bold ml-2">0</span>
+      </button>
+      <button data-filter="Riconsegnata" class="filter-btn bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold shadow-md transition duration-200 hover:bg-gray-600 ring-2 ring-transparent ring-offset-2 ring-offset-white flex justify-center items-center">
+        <span class="text-sm">Riconsegnate</span>
+        <span data-count-for="Riconsegnata" class="count-badge text-xs bg-white count-badge-riconsegnata px-2 rounded-full font-bold ml-2">0</span>
+      </button>
+      
+      <!-- Barra di Ricerca (Corrisponde al box viola nell'immagine) -->
+      <div class="search-container relative w-full md:w-auto mt-2 md:mt-0">
+        <input type="text" id="searchBar" placeholder="Cerca per cliente, camera, descrizione..."
+               class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm text-sm" />
+        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
+
+    <div id="loading" class="text-center p-12 text-lg text-gray-500">
+      <svg class="animate-spin h-6 w-6 mr-3 inline-block text-[#576c7e]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Caricamento dati...
+    </div>
+
+    <div id="scrollContainer" class="max-h-96 overflow-y-auto pr-2">
+      <div id="registrationsList" class="space-y-4"></div>
+    </div>
+
+    <div id="messageBox" class="p-6 bg-red-100 border border-red-300 text-red-800 rounded-lg hidden mt-4">
+      <p class="font-bold">ATTENZIONE: Errore di Caricamento Dati!</p>
+      <p id="errorMessageDetail" class="text-sm mt-1">Impossibile caricare i dati. Controlla la console (F12) per i dettagli.</p>
+      <div class="mt-4 pt-3 border-t border-red-200">
+        <p class="text-xs font-semibold text-red-700 mb-1">STRUMENTO DI DIAGNOSTICA PER ERRORE 400:</p>
+        <button id="openCsvLink" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md text-sm">Apri Link CSV Pubblico (Verifica manuale)</button>
+        <p class="text-xs text-red-700 mt-1">Se questo link mostra una pagina di accesso a Google, i permessi di condivisione non sono pubblici.</p>
+        <p id="csvUrlDisplay" class="text-xs font-mono text-gray-500 break-all mt-2 hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // >>> CONFIGURAZIONE: URL di deploy del tuo Apps Script (aggiornato per il progetto recente)
+  // Assicura che la deployment abbia "Execute as: Me" e l'accesso desiderato.
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec';
+
+    // Elementi DOM
+    const listContainer = document.getElementById('registrationsList');
+    const loadingIndicator = document.getElementById('loading');
+    const messageBox = document.getElementById('messageBox');
+    const errorMessageDetail = document.getElementById('errorMessageDetail');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const openCsvLinkButton = document.getElementById('openCsvLink');
+    const csvUrlDisplay = document.getElementById('csvUrlDisplay');
+    const searchBar = document.getElementById('searchBar');
+
+    let allRegistrations = [];
+    let counts = {};
+    let currentFilter = 'Tutti';
+    let currentSearchTerm = '';
+
+    /**
+     * Determina lo stato della registrazione basandosi sulla data di scadenza e sullo stato "Riscattato".
+     * Il confronto è fatto unicamente sulla data (YYYY-MM-DD), ignorando l'orario.
+     * @param {Object} item - La registrazione.
+     * @returns {string} Lo stato ('Riconsegnata', 'Scaduta', 'Attiva').
+     */
+    function determineStatus(item) {
+      const isReturned = (item['Riscattato'] || '').toString().trim().toUpperCase() === 'TRUE';
+      if (isReturned) return 'Riconsegnata';
+
+      // 1. Ottiene la data di oggi e azzera l'orario per il confronto
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0); 
+      
+      const policyDateStr = item['Termine Polizza'] || '';
+      if (!policyDateStr) return 'Attiva'; // Tratta le date vuote come Attive (o gestisci diversamente se necessario)
+
+      // 2. Scompone la stringa di data YYYY-MM-DD
+      const parts = policyDateStr.split('-');
+      if (parts.length !== 3) {
+          console.error("Formato data non valido:", policyDateStr);
+          return 'Attiva'; // Fallback
+      }
+      
+      // 3. Crea la data di scadenza usando il costruttore locale (Anno, Mese-1, Giorno)
+      // Questo previene problemi di fuso orario che possono spostare la data indietro di un giorno.
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Mese è 0-based in JS
+      const day = parseInt(parts[2], 10);
+      
+      const policyEndDate = new Date(year, month, day);
+      
+      // Verifica che la data sia valida. Se non lo è, tratta come Attiva.
+      if (isNaN(policyEndDate)) {
+          console.error("Data di scadenza non interpretabile:", policyDateStr);
+          return 'Attiva';
+      }
+
+      // Se la data odierna è strettamente maggiore della data di scadenza, è scaduta.
+      // Esempio: Oggi 17/10/2025. Scadenza 16/10/2025. 17/10 > 16/10 -> Scaduta.
+      // Esempio: Oggi 16/10/2025. Scadenza 16/10/2025. 16/10 NON > 16/10 -> Attiva.
+      if (today > policyEndDate) return 'Scaduta';
+      
+      // Altrimenti, è attiva (include il caso in cui oggi è l'ultimo giorno di validità)
+      return 'Attiva';
+    }
+
+    function updateFilterCounts() {
+      counts = { 'Tutti': 0, 'Attiva': 0, 'Scaduta': 0, 'Riconsegnata': 0 };
+      const cleanRegistrations = allRegistrations.filter(item => item['Cliente']);
+      cleanRegistrations.forEach(item => {
+        // Ricalcola lo stato se non è già stato calcolato o se i dati sono stati aggiornati
+        item.Status = determineStatus(item); 
+        counts[item.Status] = (counts[item.Status] || 0) + 1;
+      });
+      counts['Tutti'] = cleanRegistrations.length;
+      filterButtons.forEach(button => {
+        const filterType = button.getAttribute('data-filter');
+        const countBadge = button.querySelector(`.count-badge[data-count-for="${filterType}"]`);
+        if (countBadge) countBadge.textContent = counts[filterType] || 0;
+      });
+    }
+
+    function getStatusProps(status) {
+      switch (status) {
+        case 'Attiva': return { text: 'Attiva', class: 'bg-green-100 text-green-700' };
+        case 'Scaduta': return { text: 'SCADUTA', class: 'bg-red-100 text-red-700' };
+        case 'Riconsegnata': return { text: 'Riconsegnata', class: 'bg-gray-100 text-gray-700' };
+        default: return { text: 'Sconosciuto', class: 'bg-yellow-100 text-yellow-700' };
+      }
+    }
+
+    function matchesSearch(item, term) {
+        if (!term) return true;
+        const lowerTerm = term.toLowerCase();
+        // Cerca in Cliente, Camera, Descrizione
+        return (item.Cliente || '').toLowerCase().includes(lowerTerm) ||
+               (item.Camera || '').toLowerCase().includes(lowerTerm) ||
+               (item.Descrizione || '').toLowerCase().includes(lowerTerm);
+    }
+
+    function renderList() {
+      listContainer.innerHTML = '';
+      const filteredData = allRegistrations
+        .filter(item => currentFilter === 'Tutti' || item.Status === currentFilter)
+        .filter(item => matchesSearch(item, currentSearchTerm)); // Applica il filtro di ricerca
+
+      // Ordine di priorità: prima Attiva, poi Scaduta, infine Riconsegnata
+      const statusPriority = { 'Attiva': 0, 'Scaduta': 1, 'Riconsegnata': 2 };
+      filteredData.sort((a, b) => {
+        const pa = (a && a.Status && statusPriority[a.Status] !== undefined) ? statusPriority[a.Status] : 3;
+        const pb = (b && b.Status && statusPriority[b.Status] !== undefined) ? statusPriority[b.Status] : 3;
+        if (pa !== pb) return pa - pb;
+        // tie-break: ordine per Termine Polizza (stringa YYYY-MM-DD) crescente
+        const da = (a && a['Termine Polizza']) ? a['Termine Polizza'] : '';
+        const db = (b && b['Termine Polizza']) ? b['Termine Polizza'] : '';
+        if (da && db) return da.localeCompare(db);
+        if (da) return -1;
+        if (db) return 1;
+        return 0;
+      });
+
+      if (filteredData.length === 0 && allRegistrations.length > 0) {
+        const emptyMessage = `<div class="p-6 bg-yellow-50 border border-yellow-200 text-gray-600 rounded-lg">Nessuna registrazione corrispondente ai filtri e alla ricerca.</div>`;
+        listContainer.insertAdjacentHTML('beforeend', emptyMessage);
+        return;
+      }
+      if (allRegistrations.length === 0 && currentSearchTerm === '') {
+        // Non visualizzare nulla se non ci sono dati e non si sta cercando attivamente
+        return;
+      }
+
+      filteredData.forEach(item => {
+        const props = getStatusProps(item.Status);
+        const policyStatusText = item.Status === 'Scaduta' ? `<span class="text-red-500 font-bold">${item['Termine Polizza']} (Scaduta)</span>` : item['Termine Polizza'] || '-';
+        const checkedAttr = (String(item['Riscattato']||'').toUpperCase() === 'TRUE') ? 'checked' : '';
+        const rowNumber = item.__rowNumber || '';
+        const cardHtml = `
+          <div class="bg-gray-50 p-4 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition duration-200">
+            <div class="flex flex-wrap justify-between items-start mb-3">
+              <h2 class="text-lg font-bold text-gray-800 break-words w-full sm:w-3/4">${item.Cliente}</h2>
+              <span class="tag ${props.class} mt-1 sm:mt-0">${props.text}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600 border-t border-gray-100 pt-3">
+              <div><span class="font-medium text-gray-800">Camera:</span> ${item.Camera || '-'}</div>
+              <div><span class="font-medium text-gray-800">Scadenza Polizza:</span> ${policyStatusText}</div>
+            </div>
+            <div class="mt-3 text-sm text-gray-500">
+              <span class="font-medium text-gray-800">Descrizione:</span> ${item.Descrizione || 'Nessuna descrizione.'}
+            </div>
+            <div class="mt-3 text-sm text-gray-600 flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" class="riscattato-checkbox" data-row="${rowNumber}" ${checkedAttr} />
+                <span class="text-sm">Riscattato</span>
+              </label>
+              <div class="text-xs text-gray-400">riga: ${rowNumber}</div>
+            </div>
+          </div>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    async function fetchData() {
+      loadingIndicator.classList.remove('hidden');
+      messageBox.classList.add('hidden');
+      listContainer.innerHTML = '';
+      try {
+        // Proviamo prima con fetch normale (CORS-friendly), poi fallback a JSONP se bloccato
+        let data;
+        try {
+          // include app=registrazioniPA so the unified Apps Script routes the request
+          const url = new URL(ENDPOINT);
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('app', 'registrazioniPA');
+          const resp = await fetch(url.toString(), { cache: 'no-store' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + resp.statusText);
+          data = await resp.json();
+        } catch (fetchErr) {
+          console.warn('Fetch fallita, provo JSONP fallback:', fetchErr);
+          // JSONP fallback: richiede che lo script GAS supporti il parametro callback
+          data = await jsonpRequest({ format: 'json', app: 'registrazioniPA' });
+        }
+        allRegistrations = Array.isArray(data) ? data : [];
+        allRegistrations.forEach(item => { 
+            // Aggiorniamo sempre lo stato basandoci sulla funzione corretta
+            item.Status = determineStatus(item); 
+        });
+        updateFilterCounts();
+        renderList();
+      } catch (err) {
+        console.error('Errore fetch:', err);
+        errorMessageDetail.innerText = 'Impossibile caricare i dati: ' + err.message;
+        // CSV pubblicabile per diagnostica: includi app=registrazioniPA
+        const csvUrl = new URL(ENDPOINT);
+        csvUrl.searchParams.set('format', 'csv');
+        csvUrl.searchParams.set('app', 'registrazioniPA');
+        csvUrlDisplay.textContent = csvUrl.toString();
+        csvUrlDisplay.classList.remove('hidden');
+        messageBox.classList.remove('hidden');
+      } finally {
+        loadingIndicator.classList.add('hidden');
+      }
+    }
+
+    async function postRiscattato(row, value) {
+      // Proviamo prima POST via fetch; se bloccato da CORS, proviamo JSONP GET fallback
+      // (nota: il fallback usa GET per aggiornare lo stato nel foglio e richiede
+      // che lo script GAS gestisca parametri row e Riscattato via doGet e supporti callback)
+      const timeoutMs = 15000; // 15 secondi
+      // Try fetch first
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+          try {
+            // Use form-encoded POST to avoid CORS preflight (application/x-www-form-urlencoded is a simple content-type)
+            const params = new URLSearchParams();
+            params.set('app', 'registrazioniPA');
+            params.set('row', String(row));
+            params.set('Riscattato', value ? 'true' : 'false');
+            const res = await fetch(ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              body: params.toString(),
+              mode: 'cors',
+              credentials: 'omit',
+              signal: controller.signal
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            const text = await res.text();
+            if (!text) throw new Error('Risposta vuota dal server');
+            const json = JSON.parse(text);
+            if (!json.success) throw new Error(json.error || 'Errore aggiornamento');
+            return json;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        } catch (err) {
+        console.warn('POST fetch fallita, provo JSONP update fallback:', err);
+        // Fallback JSONP: inviamo i parametri via GET e riceviamo la risposta come callback
+        try {
+          // JSONP fallback: include app parameter as well
+          const json = await jsonpRequest({ app: 'registrazioniPA', row: row, Riscattato: value });
+          if (!json || !json.success) throw new Error((json && json.error) || 'Errore aggiornamento (JSONP)');
+          return json;
+        } catch (jsonpErr) {
+          console.error('Errore POST totale (fetch + JSONP):', jsonpErr);
+          throw jsonpErr;
+        }
+      }
+    }
+
+    /**
+     * JSONP helper: crea un tag <script> con callback per aggirare CORS su GET.
+     * Restituisce una promise che risolve con i dati restituiti dallo script.
+     * Richiede che lo script GAS supporti il parametro `callback` che avvolge la risposta.
+     */
+    function jsonpRequest(params = {}) {
+      return new Promise((resolve, reject) => {
+        const timeoutMs = 15000;
+        const cbName = 'gs_cb_' + Math.random().toString(36).slice(2, 9);
+        window[cbName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        const query = new URLSearchParams(params);
+        query.set('callback', cbName);
+        const script = document.createElement('script');
+        script.src = ENDPOINT + '?' + query.toString();
+        script.async = true;
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('Errore caricamento JSONP'));
+        };
+
+        const timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error('Timeout JSONP'));
+        }, timeoutMs);
+
+        function cleanup() {
+          clearTimeout(timeoutId);
+          try { script.remove(); } catch (e) {}
+          try { delete window[cbName]; } catch (e) {}
+        }
+
+        document.body.appendChild(script);
+      });
+    }
+
+    function init() {
+      // Filtri
+      const ringClassesToRemove = ['ring-[#576c7e]', 'ring-green-500', 'ring-red-500', 'ring-gray-500'];
+      filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          currentFilter = this.getAttribute('data-filter');
+          filterButtons.forEach(btn => btn.classList.remove('active', 'ring-2', ...ringClassesToRemove));
+          this.classList.add('active', 'ring-2', 'ring-offset-2', 'ring-offset-white');
+          let ringColor = 'ring-gray-500';
+          if (currentFilter === 'Tutti') ringColor = 'ring-[#576c7e]';
+          if (currentFilter === 'Attiva') ringColor = 'ring-green-500';
+          if (currentFilter === 'Scaduta') ringColor = 'ring-red-500';
+          this.classList.add(ringColor);
+          renderList(); // Ridisegna la lista con il nuovo filtro (e ricerca)
+        });
+      });
+
+      // Gestione della barra di ricerca
+      searchBar.addEventListener('input', function() {
+        currentSearchTerm = this.value.trim();
+        renderList(); // Ridisegna la lista con il nuovo termine di ricerca
+      });
+
+      openCsvLinkButton.addEventListener('click', () => {
+        window.open(ENDPOINT + '?format=csv', '_blank');
+      });
+
+      // Delegated change handler per checkbox
+      document.addEventListener('change', async (ev) => {
+        if (!ev.target.matches('.riscattato-checkbox')) return;
+        const checkbox = ev.target;
+        const row = parseInt(checkbox.dataset.row, 10);
+        const newVal = checkbox.checked;
+        // Ottimistica UI: mantieni stato, ma rollback se fallisce
+        // Trova oggetto locale e aggiorna temporaneamente
+        const localItem = allRegistrations.find(i => i.__rowNumber == row);
+        const prevVal = localItem ? localItem['Riscattato'] : null;
+        // Disabilitiamo la checkbox per evitare double-click mentre la richiesta è in corso.
+        checkbox.disabled = true;
+        checkbox.dataset.pending = 'true';
+        if (localItem) {
+          localItem['Riscattato'] = newVal ? 'TRUE' : 'FALSE';
+          localItem.Status = determineStatus(localItem);
+          updateFilterCounts();
+          renderList();
+        }
+        try {
+          const result = await postRiscattato(row, newVal);
+          // Aggiorna conferma lato client con valore normalizzato
+          if (localItem) {
+            localItem['Riscattato'] = result.Riscattato;
+            localItem.Status = determineStatus(localItem);
+            updateFilterCounts();
+            renderList();
+          }
+        } catch (err) {
+          console.error('Errore aggiornamento Riscattato:', err);
+          // Usiamo un box personalizzato invece di alert
+          const message = 'Impossibile aggiornare il foglio: ' + err.message;
+          const errorDisplay = document.getElementById('errorMessageDetail');
+          if (errorDisplay) errorDisplay.innerText = message;
+          const msgBox = document.getElementById('messageBox');
+          if (msgBox) msgBox.classList.remove('hidden');
+
+          // rollback UI
+          if (localItem) {
+            localItem['Riscattato'] = prevVal;
+            localItem.Status = determineStatus(localItem);
+            updateFilterCounts();
+            renderList();
+          }
+        }
+        // Notare: renderList() viene chiamato nelle varie branch che aggiornano lo stato;
+        // qui rimuoviamo l'attributo pending se l'elemento esiste ancora nel DOM.
+        try {
+          // Ricerca checkbox appena renderizzata (se presente)
+          const newCheckbox = document.querySelector(`.riscattato-checkbox[data-row="${row}"]`);
+          if (newCheckbox) {
+            newCheckbox.disabled = false;
+            delete newCheckbox.dataset.pending;
+          }
+        } catch (e) {
+          // ignoriamo eventuali errori di DOM
+        }
+      });
+
+      fetchData();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rinnovo Prenotazioni</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #576c7e;
+        }
+
+        input:disabled,
+        select:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .verify-btn {
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .verify-btn:hover {
+            background: #2563eb;
+        }
+
+        .verify-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        button[type="submit"],
+        .export-btn {
+            grid-column: 1 / -1;
+            padding: 14px;
+            background: #576c7e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button[type="submit"]:hover,
+        .export-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        button[type="submit"]:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .export-btn {
+            background: #999;
+        }
+
+        .message {
+            grid-column: 1 / -1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+
+        .info-box {
+            grid-column: 1 / -1;
+            padding: 15px;
+            background: #e7f3ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .info-box.show {
+            display: block;
+        }
+
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            color: #1e40af;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+
+        #riepilogoPrenotazione {
+            grid-column: 1 / -1;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        #riepilogoDettagli {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        #riepilogoDettagli span {
+            font-size: 14px;
+            color: #334155;
+        }
+
+        #riepilogoDettagli strong {
+            color: #0f172a;
+        }
+
+        #riepilogoTotale {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .button-wrapper {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-wrapper button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rinnovo Prenotazioni</h1>
+        <p class="subtitle">Rinnova le prenotazioni esistenti verificando i dati del cliente</p>
+
+        <form id="rinnovoForm">
+            <div class="form-wrapper">
+                <div class="form-group">
+                    <label for="cliente">Cliente *</label>
+                    <input type="text" id="cliente" name="cliente" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="numeroCamera">Numero Camera *</label>
+                    <input type="text" id="numeroCamera" name="numeroCamera" required>
+                </div>
+
+                <div class="form-group full">
+                    <button type="button" class="verify-btn" id="verificaBtn">Verifica Camera</button>
+                </div>
+
+                <div class="info-box" id="infoBox">
+                    <h3>📋 Prenotazione Trovata</h3>
+                    <p><strong>Check-Out Attuale:</strong> <span id="infoCheckOut">-</span></p>
+                    <p><strong>Polizza Attuale:</strong> <span id="infoPolizza">-</span></p>
+                    <p><strong>Telegram:</strong> <span id="infoTelegram">-</span></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="totaleGiorni">Totale Giorni *</label>
+                    <input type="number" id="totaleGiorni" name="totaleGiorni" min="1" disabled required>
+                </div>
+
+                <div class="form-group">
+                    <label for="checkOut">Nuovo Check-Out</label>
+                    <input type="date" id="checkOut" name="checkOut" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="polizza">Polizza *</label>
+                    <select id="polizza" name="polizza" disabled required>
+                        <option value="">-- Seleziona --</option>
+                        <option value="//">//</option>
+                        <option value="Corallo">Corallo</option>
+                        <option value="Smeraldo">Smeraldo</option>
+                        <option value="Oceano">Oceano</option>
+                        <option value="Poseidon">Poseidon</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="giorniPoseidon">Giorni Poseidon</label>
+                    <input type="number" id="giorniPoseidon" name="giorniPoseidon" min="0" value="0" disabled>
+                </div>
+
+                <div class="form-group full">
+                    <label for="dipendente">Dipendente *</label>
+                    <select id="dipendente" name="dipendente" disabled required>
+                        <option value="">-- Seleziona --</option>
+                    </select>
+                </div>
+
+                <div id="riepilogoPrenotazione">
+                    <div id="riepilogoDettagli">
+                        <span>Numero Camera: <strong id="cameraRiassunto">--</strong></span>
+                        <span>Prezzo Camera: <strong id="prezzoCameraRiassunto">€ 0,00</strong></span>
+                        <span>Prezzo Polizza: <strong id="prezzoPolizzaRiassunto">€ 0,00</strong></span>
+                    </div>
+                    <div id="riepilogoTotale">
+                        Totale: <span id="totaleRiassunto">€ 0,00</span>
+                    </div>
+                </div>
+
+                <div class="button-wrapper">
+                    <button type="submit" id="submitBtn" disabled>Registra Rinnovo</button>
+                    <button type="button" class="export-btn" id="exportBtn" disabled>Esporta</button>
+                </div>
+
+                <div id="message" class="message"></div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
+        const DIPENDENTI_GID = '663672816'; 
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec'; 
+
+        const form = document.getElementById('rinnovoForm');
+        const verificaBtn = document.getElementById('verificaBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const messageDiv = document.getElementById('message');
+        const infoBox = document.getElementById('infoBox');
+
+        const cameraRiassunto = document.getElementById('cameraRiassunto');
+        const prezzoCameraRiassunto = document.getElementById('prezzoCameraRiassunto');
+        const prezzoPolizzaRiassunto = document.getElementById('prezzoPolizzaRiassunto');
+        const totaleRiassunto = document.getElementById('totaleRiassunto');
+
+        const formatter = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+
+        let prenotazioneCorrente = null;
+        let verified = false;
+
+        const prezziPolizze = {
+            '//': 0,
+            'Corallo': 125,
+            'Smeraldo': 650,
+            'Oceano': 1275,
+            'Poseidon': 1275
+        };
+
+        // --- FUNZIONE DI UTILITÀ AGGIUNTA ---
+        // Funzione robusta per ottenere valori dall'oggetto prenotazione, 
+        // ignorando maiuscole/minuscole o trattini.
+        function getPrenotazioneValue(prenotazione, keys, defaultValue = '') {
+            for (const key of keys) {
+                if (prenotazione[key] !== undefined && prenotazione[key] !== null) {
+                    return prenotazione[key];
+                }
+            }
+            return defaultValue;
+        }
+        // --- FINE FUNZIONE DI UTILITÀ ---
+
+        function parseCurrencyToNumber(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            return parseFloat(String(value).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0;
+        }
+
+        function updateSummary() {
+            if (!verified || !prenotazioneCorrente) {
+                cameraRiassunto.textContent = '--';
+                prezzoCameraRiassunto.textContent = formatter.format(0);
+                prezzoPolizzaRiassunto.textContent = formatter.format(0);
+                totaleRiassunto.textContent = formatter.format(0);
+                exportBtn.disabled = true;
+                return;
+            }
+
+            const numeroCameraValue = document.getElementById('numeroCamera').value.trim();
+            const totaleGiorniValue = parseInt(document.getElementById('totaleGiorni').value) || 0;
+            const polizzaSelect = document.getElementById('polizza');
+            const giorniPoseidonInput = document.getElementById('giorniPoseidon');
+
+            const prezzoCamera = parseCurrencyToNumber(getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Camera', 'prezzo camera', 'PrezzoCamera'], '0'));
+
+            let polizzaSelezionata = polizzaSelect.value || getPrenotazioneValue(prenotazioneCorrente, ['Polizza', 'polizza'], '//');
+            if (!polizzaSelezionata) polizzaSelezionata = '//';
+
+            let prezzoPolizza = prezziPolizze[polizzaSelezionata] || 0;
+            if (polizzaSelezionata === 'Poseidon') {
+                const giorniPoseidon = parseInt(giorniPoseidonInput.value) || 0;
+                const giorniExtra = Math.max(0, giorniPoseidon - 1);
+                const incremento = Math.floor(1275 * 0.02 * giorniExtra);
+                prezzoPolizza = prezziPolizze['Poseidon'] + incremento;
+            }
+
+            const totaleCamera = Math.floor(prezzoCamera * totaleGiorniValue * 100) / 100;
+            const totale = Math.floor((totaleCamera + prezzoPolizza) * 100) / 100;
+
+            cameraRiassunto.textContent = numeroCameraValue || '--';
+            prezzoCameraRiassunto.textContent = formatter.format(prezzoCamera);
+            prezzoPolizzaRiassunto.textContent = formatter.format(prezzoPolizza);
+            totaleRiassunto.textContent = formatter.format(totale);
+
+            exportBtn.disabled = !(totaleGiorniValue > 0);
+        }
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            setTimeout(() => {
+                if (messageDiv.classList.contains(type)) {
+                    messageDiv.classList.remove(type);
+                }
+            }, 5000);
+        }
+
+        function resetForm() {
+            verified = false;
+            prenotazioneCorrente = null;
+            infoBox.classList.remove('show');
+            document.getElementById('totaleGiorni').value = '';
+            document.getElementById('totaleGiorni').disabled = true;
+            document.getElementById('checkOut').value = '';
+            
+            const polizzaSelect = document.getElementById('polizza');
+            polizzaSelect.value = '';
+            polizzaSelect.disabled = true; 
+            
+            document.getElementById('giorniPoseidon').value = '0';
+            document.getElementById('giorniPoseidon').disabled = true;
+            document.getElementById('dipendente').value = '';
+            document.getElementById('dipendente').disabled = true;
+            submitBtn.disabled = true;
+        }
+
+        // Carica dipendenti
+        async function loadDipendenti() {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DIPENDENTI_GID}`;
+            
+            try {
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                const rows = csvText.split('\n');
+
+                const dipendenti = document.getElementById('dipendente');
+                dipendenti.innerHTML = '<option value="">-- Seleziona --</option>';
+                
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const nome = rows[i].split(',')[0]?.trim(); 
+                    if (nome) {
+                        const option = document.createElement('option');
+                        option.value = nome;
+                        option.textContent = nome;
+                        dipendenti.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento dipendenti:', error);
+                showMessage('Errore caricamento dipendenti', 'error');
+            }
+        }
+        
+        document.getElementById('cliente').addEventListener('input', resetForm);
+        document.getElementById('numeroCamera').addEventListener('input', resetForm);
+
+        // 1. Verifica camera (utilizza Apps Script)
+        verificaBtn.addEventListener('click', async () => {
+            const cliente = document.getElementById('cliente').value.trim();
+            const camera = document.getElementById('numeroCamera').value.trim();
+            
+            if (!cliente || !camera) {
+                showMessage('Inserisci Cliente e Numero Camera', 'error');
+                return;
+            }
+            
+            resetForm(); 
+            showMessage('Verifica in corso...', 'info');
+
+            verificaBtn.disabled = true;
+            verificaBtn.textContent = 'Verifica in corso...';
+            
+            try {
+                const verifyUrl = `${WEB_APP_URL}?action=findLast&app=prenotazioni&cliente=${encodeURIComponent(cliente)}&camera=${encodeURIComponent(camera)}`;
+                
+                const response = await fetch(verifyUrl);
+                const result = await response.json();
+                
+                if (!result.success || !result.found) {
+                    showMessage(`❌ ${result.message || 'Nessuna prenotazione attiva trovata per questo Cliente e Camera'}`, 'error');
+                    resetForm();
+                    updateSummary();
+                    return;
+                }
+
+                const ultimaPrenotazione = result.data;
+                
+                // --- MODIFICA 1: Lettura robusta della data di Check-Out ---
+                const checkOutDateStr = getPrenotazioneValue(ultimaPrenotazione, [
+                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
+                ]);
+
+                if (!checkOutDateStr) {
+                    showMessage(`❌ Errore: Impossibile trovare una data di Check-Out valida per questa prenotazione.`, 'error');
+                    resetForm();
+                    return;
+                }
+                // --- FINE MODIFICA 1 ---
+
+                const checkOutDate = new Date(checkOutDateStr);
+                checkOutDate.setHours(0, 0, 0, 0); 
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); 
+                
+                if (checkOutDate < today) {
+                    showMessage(`❌ La prenotazione è scaduta in data ${checkOutDateStr}. Rinnovo non possibile.`, 'error');
+                    resetForm();
+                    return;
+                }
+                
+                prenotazioneCorrente = ultimaPrenotazione;
+                verified = true;
+                
+                const polizzaSelect = document.getElementById('polizza');
+                const totaleGiorniInput = document.getElementById('totaleGiorni');
+                const giorniPoseidonInput = document.getElementById('giorniPoseidon');
+                const dipendenteSelect = document.getElementById('dipendente');
+
+                // Polizza (con lettura robusta)
+                const oldPolizza = getPrenotazioneValue(ultimaPrenotazione, ['Polizza', 'polizza'], '//');
+                
+                if (oldPolizza && oldPolizza !== '//') {
+                    polizzaSelect.value = oldPolizza;
+                    polizzaSelect.disabled = true;
+                } else {
+                    polizzaSelect.disabled = false;
+                    polizzaSelect.value = '//'; 
+                }
+                
+                if (polizzaSelect.value === 'Poseidon') {
+                    giorniPoseidonInput.disabled = false;
+                    if (parseInt(giorniPoseidonInput.value) < 1) {
+                         giorniPoseidonInput.value = '1';
+                    }
+                } else {
+                     giorniPoseidonInput.disabled = true;
+                     giorniPoseidonInput.value = '0';
+                }
+
+                totaleGiorniInput.disabled = false;
+                dipendenteSelect.disabled = false;
+                
+                // Mostra info
+                document.getElementById('infoCheckOut').textContent = checkOutDateStr; // Ora ha il valore corretto
+                document.getElementById('infoPolizza').textContent = oldPolizza === '//' ? 'Nessuna' : oldPolizza;
+                document.getElementById('infoTelegram').textContent = getPrenotazioneValue(ultimaPrenotazione, ['Telegram', 'telegram'], 'N/A');
+                infoBox.classList.add('show');
+                
+                submitBtn.disabled = false;
+                showMessage('✓ Prenotazione verificata! Compila i campi per rinnovare', 'success');
+                
+            } catch (error) {
+                console.error('Errore:', error);
+                showMessage('Errore durante la verifica: Impossibile contattare il server', 'error');
+                resetForm();
+            } finally {
+                verificaBtn.disabled = false;
+                verificaBtn.textContent = 'Verifica Camera';
+            }
+        });
+
+        // 2. Calcolo Check-Out
+        document.getElementById('totaleGiorni').addEventListener('input', () => {
+            const checkOutInput = document.getElementById('checkOut');
+            checkOutInput.value = ''; 
+
+            if (!verified || !prenotazioneCorrente) return;
+            
+            const giorniDaAggiungere = parseInt(document.getElementById('totaleGiorni').value) || 0;
+            
+            if (giorniDaAggiungere > 0) {
+                // --- MODIFICA 2: Lettura robusta ---
+                const vecchioCheckOutDateStr = getPrenotazioneValue(prenotazioneCorrente, [
+                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
+                ]);
+
+                if (!vecchioCheckOutDateStr) {
+                    console.error("Errore critico: check-out non trovato in prenotazioneCorrente");
+                    return;
+                }
+                // --- FINE MODIFICA 2 ---
+
+                const vecchioCheckOut = new Date(vecchioCheckOutDateStr); 
+                
+                const giorniTotaliDaAggiungere = 1 + giorniDaAggiungere;
+
+                const nuovoCheckOut = new Date(vecchioCheckOut);
+                nuovoCheckOut.setDate(nuovoCheckOut.getDate() + giorniTotaliDaAggiungere); 
+                
+                checkOutInput.value = formatDate(nuovoCheckOut);
+            }
+        });
+
+        // Gestione input Giorni Poseidon
+        document.getElementById('polizza').addEventListener('change', function() {
+            const giorniPoseidon = document.getElementById('giorniPoseidon');
+            
+            if (this.value === 'Poseidon') {
+                giorniPoseidon.disabled = false;
+                if (parseInt(giorniPoseidon.value) < 1) {
+                    giorniPoseidon.value = '1';
+                }
+            } else {
+                giorniPoseidon.disabled = true;
+                giorniPoseidon.value = '0';
+            }
+        });
+
+        // Submit form
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!verified || !prenotazioneCorrente) {
+                showMessage('Devi prima verificare la camera', 'error');
+                return;
+            }
+            
+            const totaleGiorni = document.getElementById('totaleGiorni').value;
+            const checkOut = document.getElementById('checkOut').value;
+            const polizza = document.getElementById('polizza').value;
+            const dipendente = document.getElementById('dipendente').value;
+            const giorniPoseidon = document.getElementById('giorniPoseidon').value;
+            
+            if (!totaleGiorni || !dipendente || !polizza || !checkOut) {
+                showMessage('Compila tutti i campi obbligatori', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registrazione in corso...';
+            
+            try {
+                // --- MODIFICA 3: Lettura robusta ---
+                const vecchioCheckOutDateStr = getPrenotazioneValue(prenotazioneCorrente, [
+                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
+                ]);
+                // --- FINE MODIFICA 3 ---
+
+                const vecchioCheckOut = new Date(vecchioCheckOutDateStr);
+                const nuovoCheckIn = new Date(vecchioCheckOut);
+                nuovoCheckIn.setDate(nuovoCheckIn.getDate() + 1); 
+                
+                const checkInFormatted = formatDate(nuovoCheckIn);
+                
+                const dataToSend = {
+                    app: 'prenotazioni',
+                    numeroCamera: document.getElementById('numeroCamera').value.trim(),
+                    cliente: document.getElementById('cliente').value.trim(),
+                    totaleGiorni: totaleGiorni,
+                    checkOut: checkOut,
+                    polizza: polizza,
+                    dipendente: dipendente,
+                    giorniPoseidon: giorniPoseidon,
+                    
+                    // Lettura robusta dei campi nascosti
+                    telegram: getPrenotazioneValue(prenotazioneCorrente, ['Telegram', 'telegram']),
+                    dataNascita: getPrenotazioneValue(prenotazioneCorrente, ['Data di Nascita', 'data di nascita', 'Data Nascita']),
+                    checkIn: checkInFormatted, 
+                    
+                    prezzoCamera: getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Camera', 'prezzo camera'], '€ 0,00'), 
+                    prezzoPolizza: getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Polizza', 'prezzo polizza'], '€ 0,00'),
+                    
+                    append: true 
+                };
+
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: {
+                        // text/plain evita la preflight CORS mantenendo il body JSON
+                        'Content-Type': 'text/plain;charset=utf-8',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                let responseText = '';
+                let resultJson = null;
+                try {
+                    responseText = await response.text();
+                    if (responseText) {
+                        resultJson = JSON.parse(responseText);
+                    }
+                } catch (parseErr) {
+                    // Risposta non JSON: verrà gestita sotto
+                }
+
+                if (!response.ok || !resultJson || resultJson.success !== true) {
+                    console.error('Registrazione rinnovo fallita', {
+                        status: response.status,
+                        responseText,
+                        resultJson
+                    });
+                    showMessage('Errore durante il rinnovo: registrazione non confermata dal server', 'error');
+                    return;
+                }
+
+                showMessage('✓ Rinnovo registrato con successo!', 'success');
+
+                setTimeout(() => {
+                    form.reset();
+                    resetForm();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Errore durante il rinnovo:', error);
+                showMessage('Errore durante il rinnovo: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Registra Rinnovo';
+            }
+        });
+
+        // Inizializza al caricamento
+        loadDipendenti();
+        resetForm();
+    </script>
+</body>
+</html>

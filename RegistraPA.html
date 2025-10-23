@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registra PA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        /* Page header styles */
+        .page-header {
+            display:flex;
+            justify-content:space-between;
+            align-items:baseline;
+            margin-bottom:18px;
+        }
+        .page-header-left h1 {
+            font-size:34px;
+            color:#22303b;
+            margin-bottom:8px;
+            font-weight:800;
+        }
+        .page-subtitle { color:#6b7280; font-size:16px; margin-top:2px; }
+        .page-header-right { font-size:12px; color:#9ca3af; text-align:right; }
+
+        .form-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="date"],
+        select,
+        textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #576c7e;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        button {
+            padding: 14px;
+            background: #576c7e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            grid-column: 1 / -1;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(87, 108, 126, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .message {
+            grid-column: 1 / -1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Page header / intro -->
+    <header class="page-header">
+        <div class="page-header-left">
+            <h1>Registra</h1>
+            <p class="page-subtitle">Registra e gestisci le registrazioni in tempo reale.</p>
+        </div>
+        <div class="page-header-right">
+            <div class="small-note">Aggiungi nuovi oggetti in custodia</div>
+        </div>
+    </header>
+
+    <form id="paForm">
+        <div class="form-wrapper">
+            <div class="form-group">
+                <label for="nomeCliente">Nome Cliente *</label>
+                <input type="text" id="nomeCliente" name="nomeCliente" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="numeroCamera">Numero Camera *</label>
+                <input type="text" id="numeroCamera" name="numeroCamera" placeholder="es. 101" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="dataFinePolizza">Data Fine Polizza *</label>
+                <input type="date" id="dataFinePolizza" name="dataFinePolizza" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="dipendente">Dipendente *</label>
+                <select id="dipendente" name="dipendente" required>
+                    <option value="">-- Seleziona --</option>
+                </select>
+            </div>
+            
+            <div class="form-group full">
+                <label for="descrizione">Descrizione (Foto)</label>
+                <textarea id="descrizione" name="descrizione" placeholder="Descrivi l'oggetto in custodia (opzionale)"></textarea>
+            </div>
+            
+            <button type="submit">Registra PA</button>
+            
+
+
+            <div id="message" class="message"></div>
+        </div>
+    </form>
+
+    <script>
+        // Configurazione
+        const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec';
+
+        const form = document.getElementById('paForm');
+        const dipendente = document.getElementById('dipendente');
+        const messageDiv = document.getElementById('message');
+
+        // Carica i dipendenti dal foglio
+        async function loadDipendenti() {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+            
+            try {
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                const rows = csvText.split('\n');
+
+                // Tentativo di caricamento da CSV export completo
+                loadDipendentiFromSheet();
+                
+                // Tenta di ottenere l'email dell'utente corrente
+                try {
+                    // Richiesta per ottenere l'email dell'utente corrente
+                    const userEmailResponse = await fetch(`${webAppUrl}?app=getUserEmail`);
+                    const userEmailData = await userEmailResponse.json();
+                    if (userEmailData && userEmailData.email) {
+                        window.currentUserEmail = userEmailData.email;
+                        console.log("Email utente corrente:", window.currentUserEmail);
+                    }
+                } catch (error) {
+                    console.error("Impossibile ottenere l'email dell'utente:", error);
+                }
+            } catch (error) {
+                console.error('Errore nel caricamento dipendenti:', error);
+            }
+        }
+
+        async function loadDipendentiFromSheet() {
+            // Carica dal foglio "Dipendenti" usando il gid corretto
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=663672816`;
+            
+            try {
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                const rows = csvText.split('\n').filter(r => r.trim() !== '');
+
+                // detect header columns
+                const headerCols = rows[0].split(',').map(h => h.trim().toLowerCase());
+                let idxName = headerCols.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('nomin'));
+                let idxMail = headerCols.findIndex(h => h.includes('mail') || h.includes('e-mail'));
+                if (idxName === -1) idxName = 0;
+                if (idxMail === -1) idxMail = 1;
+
+                // Popolo la lista
+                dipendente.innerHTML = '<option value="">-- Seleziona --</option>';
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const cols = rows[i].split(',');
+                    const nome = (cols[idxName] || cols[0] || '').trim();
+                    const mail = (cols[idxMail] || '').trim();
+                    if (nome || mail) {
+                        const option = document.createElement('option');
+                        option.value = mail || nome;
+                        option.textContent = nome;
+                        dipendente.appendChild(option);
+                    }
+                }
+
+                // aggiorna il campo elaborato da
+                const elaboratoByPA = document.getElementById('elaboratoByPA');
+                if (elaboratoByPA) elaboratoByPA.textContent = dipendente.selectedOptions[0]?.textContent || dipendente.value || '--';
+
+                console.log('Dipendenti caricati');
+            } catch (error) {
+                console.error('Errore nel caricamento dipendenti:', error);
+                // Fallback a dipendenti predefiniti
+                dipendente.innerHTML = `
+                    <option value="">-- Seleziona --</option>
+                    <option value="Not_Pwd1">Not_Pwd1</option>
+                    <option value="xSharkyboy">xSharkyboy</option>
+                `;
+                const elaboratoByPA = document.getElementById('elaboratoByPA');
+                if (elaboratoByPA) elaboratoByPA.textContent = dipendente.value || '--';
+            }
+        }
+
+        // Carica i dipendenti al caricamento
+        loadDipendenti();
+
+        // Aggiorna elaborato da all'aggiunta della selezione
+        dipendente.addEventListener('change', function() {
+            const elaboratoByPA = document.getElementById('elaboratoByPA');
+            if (elaboratoByPA) elaboratoByPA.textContent = this.value || '--';
+        });
+
+        // Gestione invio form
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!document.getElementById('nomeCliente').value ||
+                !document.getElementById('numeroCamera').value ||
+                !document.getElementById('dataFinePolizza').value ||
+                !document.getElementById('dipendente').value) {
+                messageDiv.textContent = '⚠ Seleziona/Compila tutti i campi obbligatori!';
+                messageDiv.className = 'message error';
+                setTimeout(() => { messageDiv.className = 'message'; }, 3000);
+                return;
+            }
+            
+            const dataToSend = {
+                nomeCliente: document.getElementById('nomeCliente').value,
+                numeroCamera: document.getElementById('numeroCamera').value,
+                dataFinePolizza: document.getElementById('dataFinePolizza').value,
+                dipendente: document.getElementById('dipendente').value,
+                elaboratoDa: window.currentUserEmail || document.getElementById('dipendente').value,
+                descrizione: document.getElementById('descrizione').value || ''
+            };
+
+            const urlEncodedData = new URLSearchParams(dataToSend);
+
+            try {
+                    const response = await fetch(webAppUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                        body: new URLSearchParams(Object.assign({ app: 'registrazioniPA', append: 'true' }, Object.fromEntries(urlEncodedData)))
+                    });
+
+                messageDiv.textContent = '✓ PA registrato con successo!';
+                messageDiv.className = 'message success';
+                
+                form.reset();
+                
+                setTimeout(() => { messageDiv.className = 'message'; }, 4000);
+            } catch (error) {
+                messageDiv.textContent = '❌ Errore di rete. Controlla la connessione.';
+                messageDiv.className = 'message error';
+                console.error("Errore di rete/fetch:", error);
+                
+                setTimeout(() => { messageDiv.className = 'message'; }, 4000);
+            }
+        });
+    </script>
+</body>
+</html>

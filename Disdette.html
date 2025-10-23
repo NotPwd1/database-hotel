@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Disdette</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .filter-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn.green {
+            background: #10b981;
+            color: white;
+        }
+        
+        .filter-btn.green:hover {
+            background: #059669;
+        }
+        
+        .filter-btn.red {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .filter-btn.red:hover {
+            background: #dc2626;
+        }
+        
+        .filter-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .lista-scadenze {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .scadenza-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .scadenza-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .scadenza-card.domani {
+            border-left: 5px solid #10b981;
+            background: #f0fdf4;
+        }
+        
+        .scadenza-card.oggi {
+            border-left: 5px solid #ef4444;
+            background: #fef2f2;
+        }
+        
+        .scadenza-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .scadenza-cliente {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        
+        .scadenza-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .scadenza-badge.domani {
+            background: #10b981;
+            color: white;
+        }
+        
+        .scadenza-badge.oggi {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .scadenza-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            font-size: 14px;
+            color: #4b5563;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .scadenza-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-wrapper label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .row-number {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            opacity: 0.5;
+        }
+        
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .message.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .message.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="message" id="messageBox"></div>
+    
+    <div class="container">
+        <h1>Gestione Disdette</h1>
+        <p class="subtitle">Gestisci le scadenze delle camere e marca le disdette effettuate</p>
+        
+        <div class="filters">
+            <button class="filter-btn green" id="btnDomani">🔔 Scadono Domani</button>
+            <button class="filter-btn red" id="btnOggi">⚠️ Scadute Oggi</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <svg class="animate-spin h-8 w-8 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p style="margin-top: 15px;">Caricamento dati...</p>
+        </div>
+        
+        <div class="lista-scadenze" id="listaScadenze"></div>
+    </div>
+
+    <script>
+        const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
+        const DISDETTE_GID = '692494043';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby56YnmslfihFoSnXKPsaMy0Fw4zopkqe05xkt6zLm1R8HxhNOoqAvdbPS3WP3sS7EP/exec';
+        
+        let allScadenze = [];
+        let currentFilter = 'all';
+        
+        const loading = document.getElementById('loading');
+        const listaScadenze = document.getElementById('listaScadenze');
+        const btnDomani = document.getElementById('btnDomani');
+        const btnOggi = document.getElementById('btnOggi');
+        const messageBox = document.getElementById('messageBox');
+
+        // Date helper
+        function getToday() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return today;
+        }
+        
+        function getTomorrow() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            return tomorrow;
+        }
+        
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const d = new Date(dateStr + 'T00:00:00');
+            return isNaN(d) ? null : d;
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = parseDate(dateStr);
+            if (!d) return dateStr;
+            return d.toLocaleDateString('it-IT');
+        }
+
+        // Determina tipo scadenza
+        function getScadenzaType(scadenzaCamera) {
+            const scadenzaDate = parseDate(scadenzaCamera);
+            if (!scadenzaDate) return null;
+            
+            const today = getToday();
+            const tomorrow = getTomorrow();
+            
+            if (scadenzaDate.getTime() === tomorrow.getTime()) {
+                return 'domani';
+            }
+            
+            if (scadenzaDate.getTime() === today.getTime()) {
+                return 'oggi';
+            }
+            
+            return null;
+        }
+
+        // Carica dati
+        async function loadData() {
+            loading.style.display = 'block';
+            listaScadenze.innerHTML = '';
+            
+            try {
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DISDETTE_GID}`;
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                const rows = csvText.split('\n');
+                
+                if (rows.length <= 1) {
+                    showEmptyState('Nessuna scadenza trovata');
+                    return;
+                }
+                
+                // Parse CSV
+                const headers = rows[0].split(',').map(h => h.trim());
+                allScadenze = [];
+                
+                // Trova tutte le righe per ogni camera e prendi solo l'ultima
+                const cameraMap = new Map();
+                
+                for (let i = rows.length - 1; i > 0; i--) {
+                    if (!rows[i].trim()) continue;
+                    
+                    const cols = rows[i].split(',');
+                    const numeroCamera = cols[0]?.trim();
+                    const cliente = cols[1]?.trim();
+                    const scadenzaCamera = cols[2]?.trim();
+                    const scadenzaPolizza = cols[3]?.trim();
+                    const disdetta = cols[4]?.trim().toUpperCase() === 'TRUE';
+                    const dipendente = cols[5]?.trim();
+                    const rinnovato = cols[6]?.trim().toUpperCase() === 'TRUE';
+                    
+                    if (!numeroCamera || !cliente) continue;
+                    
+                    // Prendi solo l'ultima riga (più recente) per ogni camera
+                    if (!cameraMap.has(numeroCamera)) {
+                        const scadenza = {
+                            numeroCamera,
+                            cliente,
+                            scadenzaCamera,
+                            scadenzaPolizza,
+                            disdetta,
+                            dipendente,
+                            rinnovato,
+                            rowNumber: i + 1,
+                            type: getScadenzaType(scadenzaCamera)
+                        };
+                        
+                        // Includi solo se è oggi o domani
+                        if (scadenza.type) {
+                            cameraMap.set(numeroCamera, scadenza);
+                            allScadenze.push(scadenza);
+                        }
+                    }
+                }
+                
+                if (allScadenze.length === 0) {
+                    showEmptyState('Nessuna scadenza per oggi o domani');
+                    return;
+                }
+                
+                renderList();
+                
+            } catch (error) {
+                console.error('Errore:', error);
+                showMessage('Errore caricamento dati: ' + error.message, 'error');
+                showEmptyState('Errore nel caricamento dei dati');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Render lista
+        function renderList() {
+            listaScadenze.innerHTML = '';
+            
+            let filtered = allScadenze;
+            
+            if (currentFilter === 'domani') {
+                filtered = allScadenze.filter(s => s.type === 'domani');
+            } else if (currentFilter === 'oggi') {
+                filtered = allScadenze.filter(s => s.type === 'oggi');
+            }
+            
+            if (filtered.length === 0) {
+                showEmptyState('Nessuna scadenza per questo filtro');
+                return;
+            }
+            
+            // Ordina: domani prima, oggi dopo
+            filtered.sort((a, b) => {
+                if (a.type === 'domani' && b.type === 'oggi') return -1;
+                if (a.type === 'oggi' && b.type === 'domani') return 1;
+                return a.cliente.localeCompare(b.cliente);
+            });
+            
+            filtered.forEach(scadenza => {
+                const card = createScadenzaCard(scadenza);
+                listaScadenze.appendChild(card);
+            });
+        }
+
+        // Crea card
+        function createScadenzaCard(scadenza) {
+            const card = document.createElement('div');
+            card.className = `scadenza-card ${scadenza.type}`;
+            
+            const badgeText = scadenza.type === 'domani' ? 'Scade Domani' : 'Scaduta Oggi';
+            const badgeClass = scadenza.type === 'domani' ? 'domani' : 'oggi';
+            
+            card.innerHTML = `
+                <div class="scadenza-header">
+                    <div class="scadenza-cliente">${scadenza.cliente}</div>
+                    <div class="scadenza-badge ${badgeClass}">${badgeText}</div>
+                </div>
+                <div class="scadenza-info">
+                    <div class="info-item">
+                        <span class="info-label">Camera:</span> ${scadenza.numeroCamera}
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Scadenza Camera:</span> ${formatDate(scadenza.scadenzaCamera)}
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Scadenza Polizza:</span> ${formatDate(scadenza.scadenzaPolizza) || '-'}
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Dipendente:</span> ${scadenza.dipendente || '-'}
+                    </div>
+                </div>
+                <div class="scadenza-actions">
+                    <div class="checkbox-wrapper">
+                        <input 
+                            type="checkbox" 
+                            id="check-${scadenza.rowNumber}"
+                            data-row="${scadenza.rowNumber}"
+                            ${scadenza.disdetta ? 'checked' : ''}
+                            onchange="toggleDisdetta(${scadenza.rowNumber}, this.checked)"
+                        />
+                        <label for="check-${scadenza.rowNumber}">Disdetta Effettuata</label>
+                    </div>
+                    <div class="row-number">Riga: ${scadenza.rowNumber}</div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function jsonpUpdateDisdetta(rowNumber, isChecked) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonpDisdette_' + Math.random().toString(36).slice(2, 10);
+                const params = new URLSearchParams();
+                params.append('app', 'disdette');
+                params.append('row', String(rowNumber));
+                params.append('field', 'Disdetta');
+                params.append('value', isChecked ? 'true' : 'false');
+                params.append('callback', callbackName);
+                const script = document.createElement('script');
+                const timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Timeout JSONP'));
+                }, 15000);
+                function cleanup() {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    clearTimeout(timeoutId);
+                }
+                window[callbackName] = (data) => {
+                    cleanup();
+                    resolve(data);
+                };
+                script.src = `${WEB_APP_URL}?${params.toString()}`;
+                script.async = true;
+                script.onerror = () => {
+                    cleanup();
+                    reject(new Error('Errore JSONP'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Toggle disdetta
+        window.toggleDisdetta = async function(rowNumber, isChecked) {
+            try {
+                const params = new URLSearchParams();
+                params.append('app', 'disdette');
+                params.append('row', String(rowNumber));
+                params.append('field', 'Disdetta');
+                params.append('value', isChecked ? 'true' : 'false');
+
+                let result;
+                try {
+                    params.append('callback', '');
+                    const response = await fetch(WEB_APP_URL + '?' + params.toString(), {
+                        method: 'GET'
+                    });
+                    const text = await response.text();
+                    result = text ? JSON.parse(text) : null;
+                    if (!result || !result.success) {
+                        throw new Error((result && result.error) || 'Errore aggiornamento');
+                    }
+                } catch (primaryError) {
+                    result = await jsonpUpdateDisdetta(rowNumber, isChecked);
+                    if (!result || !result.success) {
+                        throw new Error((result && result.error) || 'Errore aggiornamento');
+                    }
+                }
+
+                showMessage('✓ Disdetta aggiornata con successo', 'success');
+                const scadenza = allScadenze.find(s => s.rowNumber === rowNumber);
+                if (scadenza) {
+                    scadenza.disdetta = isChecked;
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showMessage('Errore aggiornamento: ' + error.message, 'error');
+                const checkbox = document.querySelector(`input[data-row="${rowNumber}"]`);
+                if (checkbox) {
+                    checkbox.checked = !isChecked;
+                }
+            }
+        };
+
+        // Empty state
+        function showEmptyState(message) {
+            listaScadenze.innerHTML = `
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            messageBox.textContent = text;
+            messageBox.className = `message ${type} show`;
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        // Filtri
+        btnDomani.addEventListener('click', () => {
+            currentFilter = currentFilter === 'domani' ? 'all' : 'domani';
+            btnDomani.classList.toggle('active');
+            btnOggi.classList.remove('active');
+            renderList();
+        });
+        
+        btnOggi.addEventListener('click', () => {
+            currentFilter = currentFilter === 'oggi' ? 'all' : 'oggi';
+            btnOggi.classList.toggle('active');
+            btnDomani.classList.remove('active');
+            renderList();
+        });
+
+        // Init
+        loadData();
+    </script>
+</body>
+</html>
