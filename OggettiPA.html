@@ -98,7 +98,7 @@
   <script>
   // >>> CONFIGURAZIONE: URL di deploy del tuo Apps Script (aggiornato per il progetto recente)
   // Assicura che la deployment abbia "Execute as: Me" e l'accesso desiderato.
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxt8FmpXFHPGeXiXN3VgzH_NqNpAg4-ajjZSPI5ZmryQdM0bqFmqm9meZqbUjq9byRn/exec;
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
 
     // Elementi DOM
     const listContainer = document.getElementById('registrationsList');
@@ -278,9 +278,9 @@
           // JSONP fallback: richiede che lo script GAS supporti il parametro callback
           data = await jsonpRequest({ format: 'json', app: 'registrazioniPA' });
         }
-        allRegistrations = Array.isArray(data) ? data : [];
+        const records = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        allRegistrations = records;
         allRegistrations.forEach(item => { 
-            // Aggiorniamo sempre lo stato basandoci sulla funzione corretta
             item.Status = determineStatus(item); 
         });
         updateFilterCounts();
