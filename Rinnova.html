@@ -322,7 +322,7 @@
     <script>
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const DIPENDENTI_GID = '663672816'; 
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxt8FmpXFHPGeXiXN3VgzH_NqNpAg4-ajjZSPI5ZmryQdM0bqFmqm9meZqbUjq9byRn/exec; 
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
 
         const form = document.getElementById('rinnovoForm');
         const verificaBtn = document.getElementById('verificaBtn');
@@ -443,30 +443,42 @@
             submitBtn.disabled = true;
         }
 
-        // Carica dipendenti
         async function loadDipendenti() {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DIPENDENTI_GID}`;
-            
+            const dipendenti = document.getElementById('dipendente');
             try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const rows = csvText.split('\n');
-
-                const dipendenti = document.getElementById('dipendente');
+                const response = await fetch(`${WEB_APP_URL}?app=dipendenti`);
+                const payload = await response.json();
+                const records = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
                 dipendenti.innerHTML = '<option value="">-- Seleziona --</option>';
-                
-                for (let i = 1; i < rows.length; i++) {
-                    if (!rows[i].trim()) continue;
-                    const nome = rows[i].split(',')[0]?.trim(); 
+                records.forEach(item => {
+                    if (!item || typeof item !== 'object') return;
+                    const nome = (item['Nome'] || item['Nome e Cognome'] || item['Nome Dipendente'] || item['Dipendente'] || item['Anagrafica'] || item['nome'] || '').toString().trim();
                     if (nome) {
                         const option = document.createElement('option');
                         option.value = nome;
                         option.textContent = nome;
                         dipendenti.appendChild(option);
                     }
+                });
+                if (dipendenti.options.length === 1) {
+                    const fallbackValues = ['Not_Pwd1', 'xSharkyboy'];
+                    fallbackValues.forEach(value => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = value;
+                        dipendenti.appendChild(option);
+                    });
                 }
             } catch (error) {
                 console.error('Errore caricamento dipendenti:', error);
+                dipendenti.innerHTML = '<option value="">-- Seleziona --</option>';
+                const fallbackValues = ['Not_Pwd1', 'xSharkyboy'];
+                fallbackValues.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    dipendenti.appendChild(option);
+                });
                 showMessage('Errore caricamento dipendenti', 'error');
             }
         }
