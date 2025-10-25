@@ -181,87 +181,63 @@
     <script>
         // Configurazione
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycbxt8FmpXFHPGeXiXN3VgzH_NqNpAg4-ajjZSPI5ZmryQdM0bqFmqm9meZqbUjq9byRn/exec;
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
 
         const form = document.getElementById('paForm');
         const dipendente = document.getElementById('dipendente');
         const messageDiv = document.getElementById('message');
 
-        // Carica i dipendenti dal foglio
         async function loadDipendenti() {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
-            
             try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const rows = csvText.split('\n');
-
-                // Tentativo di caricamento da CSV export completo
-                loadDipendentiFromSheet();
-                
-                // Tenta di ottenere l'email dell'utente corrente
-                try {
-                    // Richiesta per ottenere l'email dell'utente corrente
-                    const userEmailResponse = await fetch(`${webAppUrl}?app=getUserEmail`);
-                    const userEmailData = await userEmailResponse.json();
-                    if (userEmailData && userEmailData.email) {
-                        window.currentUserEmail = userEmailData.email;
-                        console.log("Email utente corrente:", window.currentUserEmail);
-                    }
-                } catch (error) {
-                    console.error("Impossibile ottenere l'email dell'utente:", error);
-                }
-            } catch (error) {
-                console.error('Errore nel caricamento dipendenti:', error);
-            }
-        }
-
-        async function loadDipendentiFromSheet() {
-            // Carica dal foglio "Dipendenti" usando il gid corretto
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=663672816`;
-            
-            try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const rows = csvText.split('\n').filter(r => r.trim() !== '');
-
-                // detect header columns
-                const headerCols = rows[0].split(',').map(h => h.trim().toLowerCase());
-                let idxName = headerCols.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('nomin'));
-                let idxMail = headerCols.findIndex(h => h.includes('mail') || h.includes('e-mail'));
-                if (idxName === -1) idxName = 0;
-                if (idxMail === -1) idxMail = 1;
-
-                // Popolo la lista
+                const response = await fetch(`${webAppUrl}?app=dipendenti`);
+                const payload = await response.json();
+                const records = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
                 dipendente.innerHTML = '<option value="">-- Seleziona --</option>';
-                for (let i = 1; i < rows.length; i++) {
-                    if (!rows[i].trim()) continue;
-                    const cols = rows[i].split(',');
-                    const nome = (cols[idxName] || cols[0] || '').trim();
-                    const mail = (cols[idxMail] || '').trim();
-                    if (nome || mail) {
+                records.forEach(item => {
+                    if (!item || typeof item !== 'object') return;
+                    const nome = (item['Nome'] || item['Nome e Cognome'] || item['Nome Dipendente'] || item['Dipendente'] || item['Anagrafica'] || item['nome'] || '').toString().trim();
+                    const mail = (item['Email'] || item['Mail'] || item['E-mail'] || item['email'] || '').toString().trim();
+                    if (nome) {
                         const option = document.createElement('option');
                         option.value = mail || nome;
                         option.textContent = nome;
                         dipendente.appendChild(option);
                     }
+                });
+                if (dipendente.options.length === 1) {
+                    const fallbackValues = ['Not_Pwd1', 'xSharkyboy'];
+                    fallbackValues.forEach(value => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = value;
+                        dipendente.appendChild(option);
+                    });
                 }
-
-                // aggiorna il campo elaborato da
                 const elaboratoByPA = document.getElementById('elaboratoByPA');
-                if (elaboratoByPA) elaboratoByPA.textContent = dipendente.selectedOptions[0]?.textContent || dipendente.value || '--';
-
-                console.log('Dipendenti caricati');
+                if (elaboratoByPA) {
+                    elaboratoByPA.textContent = dipendente.selectedOptions[0]?.textContent || dipendente.value || '--';
+                }
             } catch (error) {
                 console.error('Errore nel caricamento dipendenti:', error);
-                // Fallback a dipendenti predefiniti
                 dipendente.innerHTML = `
                     <option value="">-- Seleziona --</option>
                     <option value="Not_Pwd1">Not_Pwd1</option>
                     <option value="xSharkyboy">xSharkyboy</option>
                 `;
                 const elaboratoByPA = document.getElementById('elaboratoByPA');
-                if (elaboratoByPA) elaboratoByPA.textContent = dipendente.value || '--';
+                if (elaboratoByPA) {
+                    elaboratoByPA.textContent = dipendente.value || '--';
+                }
+            }
+
+            try {
+                const userEmailResponse = await fetch(`${webAppUrl}?app=getUserEmail`);
+                const userEmailData = await userEmailResponse.json();
+                if (userEmailData && userEmailData.email) {
+                    window.currentUserEmail = userEmailData.email;
+                }
+            } catch (error) {
+                console.error("Impossibile ottenere l'email dell'utente:", error);
             }
         }
 
