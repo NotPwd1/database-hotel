@@ -1,24 +1,17 @@
 /**
  * Script Apps Script Definitivo - Supporta Prenotazioni, Registrazioni PA, Rinnovi e Disdette
+ * VERSIONE CORRETTA SENZA .setHeader()
  */
 
 const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
 const SHEET_OGGETTI = 'OggettiPAO';
 const SHEET_PRENOTAZIONI = 'Prenotazioni';
 const SHEET_DISDETTE = 'Disdette';
+const SHEET_DIPENDENTI = 'Dipendenti';
 const DISDETTE_GID = '692494043';
 
-function addCorsHeaders(output) {
-  if (output && typeof output.setHeader === 'function') {
-    output.setHeader('Access-Control-Allow-Origin', '*');
-    output.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  }
-  return output;
-}
-
 function doOptions(e) {
-  return addCorsHeaders(ContentService.createTextOutput('').setMimeType(ContentService.MimeType.TEXT_PLAIN));
+  return ContentService.createTextOutput('').setMimeType(ContentService.MimeType.TEXT_PLAIN);
 }
 
 function doGet(e) {
@@ -35,6 +28,10 @@ function doGet(e) {
   
   if (app === 'disdette' || app === 'disdire') {
     return doGetDisdette(e);
+  }
+  
+  if (app === 'dipendenti') {
+    return doGetDipendenti();
   }
   
   if (app.indexOf('registraz') === 0 || app === 'registrazioni') {
@@ -61,9 +58,6 @@ function getUserEmail(e) {
   }
 }
 
-/**
- * Trova l'ultima prenotazione per un cliente e camera specifici
- */
 function findLastPrenotazione(cliente, camera) {
   try {
     if (!cliente || !camera) {
@@ -87,7 +81,6 @@ function findLastPrenotazione(cliente, camera) {
     }
     
     let lastMatch = null;
-    let lastRowNumber = -1;
     
     for (let i = data.length - 1; i > 0; i--) {
       const row = data[i];
@@ -110,7 +103,6 @@ function findLastPrenotazione(cliente, camera) {
           }
         });
         lastMatch.__rowNumber = i + 1;
-        lastRowNumber = i + 1;
         break;
       }
     }
@@ -131,10 +123,10 @@ function findLastPrenotazione(cliente, camera) {
     
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -162,68 +154,71 @@ function doPost(e) {
   return doPostPrenotazioni(e);
 }
 
-/**
- * GET per Disdette - Restituisce tutti i dati del foglio Disdette
- */
 function doGetDisdette(e) {
   try {
     const params = (e && e.parameter) || {};
+    
+    // Supporto GET per aggiornamento (JSONP fallback)
     if (params.row && params.field && params.value !== undefined) {
-      const finalValue = updateDisdetteValue(params.row, params.field, params.value);
-      const payload = JSON.stringify({
+      const row = parseInt(params.row, 10);
+      const ss = SpreadsheetApp.openById(SHEET_ID);
+      const sheet = ss.getSheetByName(SHEET_DISDETTE);
+      if (!sheet) throw new Error('Sheet Disdette not found');
+      
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const col = headers.indexOf(params.field) + 1;
+      if (col === 0) throw new Error('Column ' + params.field + ' not found');
+      
+      let finalValue = params.value;
+      if (params.field === 'Disdetta' || params.field === 'Rinnovato') {
+        finalValue = (params.value === true || params.value === 'true' || params.value === '1' || String(params.value).toLowerCase() === 'true');
+      }
+      
+      sheet.getRange(row, col).setValue(finalValue);
+      SpreadsheetApp.flush();
+      
+      const result = {
         success: true,
-        row: parseInt(params.row, 10),
+        row: row,
         field: params.field,
         value: finalValue
-      });
+      };
+      
+      const out = JSON.stringify(result);
+      
       if (params.callback) {
-        return addCorsHeaders(ContentService.createTextOutput(params.callback + '(' + payload + ')')
-          .setMimeType(ContentService.MimeType.JAVASCRIPT));
+        return ContentService.createTextOutput(params.callback + '(' + out + ')')
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
       }
-      return addCorsHeaders(ContentService.createTextOutput(payload)
-        .setMimeType(ContentService.MimeType.JSON));
+      
+      return ContentService.createTextOutput(out)
+        .setMimeType(ContentService.MimeType.JSON);
     }
+    
+    // Altrimenti restituisci tutti i dati
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheet = ss.getSheetByName(SHEET_DISDETTE);
     if (!sheet) throw new Error('Sheet Disdette not found');
+    
     const data = sheetDataToObjects(sheet);
     const out = JSON.stringify(data);
+    
     if (params.callback) {
-      return addCorsHeaders(ContentService.createTextOutput(params.callback + '(' + out + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT));
+      return ContentService.createTextOutput(params.callback + '(' + out + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
-    return addCorsHeaders(ContentService.createTextOutput(out)
-      .setMimeType(ContentService.MimeType.JSON));
+    
+    return ContentService.createTextOutput(out)
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function updateDisdetteValue(row, field, value) {
-  const rowNumber = parseInt(row, 10);
-  if (!rowNumber || rowNumber < 2) throw new Error('Invalid row');
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_DISDETTE);
-  if (!sheet) throw new Error('Sheet Disdette not found');
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const col = headers.indexOf(field) + 1;
-  if (col === 0) throw new Error('Column ' + field + ' not found');
-  let finalValue = value;
-  if (field === 'Disdetta' || field === 'Rinnovato') {
-    finalValue = (value === true || value === 'true' || value === '1' || String(value).toLowerCase() === 'true');
-  }
-  sheet.getRange(rowNumber, col).setValue(finalValue);
-  SpreadsheetApp.flush();
-  return finalValue;
-}
-
-/**
- * POST per Disdette - Aggiorna il campo Disdetta per una riga specifica
- */
 function doPostDisdette(e) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -245,22 +240,38 @@ function doPostDisdette(e) {
     }
 
     if (body.row && body.field && (body.value !== undefined)) {
-      const finalValue = updateDisdetteValue(body.row, body.field, body.value);
-      return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+      const row = parseInt(body.row, 10);
+      const ss = SpreadsheetApp.openById(SHEET_ID);
+      const sheet = ss.getSheetByName(SHEET_DISDETTE);
+      if (!sheet) throw new Error('Sheet Disdette not found');
+      
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const col = headers.indexOf(body.field) + 1;
+      if (col === 0) throw new Error('Column ' + body.field + ' not found');
+      
+      let finalValue = body.value;
+      if (body.field === 'Disdetta' || body.field === 'Rinnovato') {
+        finalValue = (body.value === true || body.value === 'true' || body.value === '1' || String(body.value).toLowerCase() === 'true');
+      }
+      
+      sheet.getRange(row, col).setValue(finalValue);
+      SpreadsheetApp.flush();
+      
+      return ContentService.createTextOutput(JSON.stringify({
         success: true,
-        row: parseInt(body.row, 10),
+        row: row,
         field: body.field,
         value: finalValue
-      })).setMimeType(ContentService.MimeType.JSON));
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     throw new Error('No valid action (row, field, and value required)');
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     try { lock.releaseLock(); } catch (e) {}
   }
@@ -277,18 +288,18 @@ function doGetPrenotazioni(e) {
     const out = JSON.stringify(data);
     
     if (params.callback) {
-      return addCorsHeaders(ContentService.createTextOutput(params.callback + '(' + out + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT));
+      return ContentService.createTextOutput(params.callback + '(' + out + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
     
-    return addCorsHeaders(ContentService.createTextOutput(out)
-      .setMimeType(ContentService.MimeType.JSON));
+    return ContentService.createTextOutput(out)
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -312,7 +323,6 @@ function doPostPrenotazioni(e) {
       body = e.parameter;
     }
 
-    // Aggiorna campo specifico
     if (body.row && body.field && (body.value !== undefined)) {
       const row = parseInt(body.row, 10);
       const ss = SpreadsheetApp.openById(SHEET_ID);
@@ -331,7 +341,6 @@ function doPostPrenotazioni(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Append nuova riga
     if (body.append === 'true' || body.append === true || Array.isArray(body.values)) {
       const userEmail = Session.getActiveUser().getEmail();
       if (userEmail && !body.elaboratoDa && !body.elaborato) {
@@ -402,12 +411,29 @@ function doPostPrenotazioni(e) {
     throw new Error('No valid action (body.append missing or false)');
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     try { lock.releaseLock(); } catch (e) {}
+  }
+}
+
+function doGetDipendenti() {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_DIPENDENTI);
+    if (!sheet) throw new Error('Sheet Dipendenti not found');
+    const data = sheetDataToObjects(sheet);
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    Logger.log(err);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.message
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -451,18 +477,18 @@ function doGetRegistrazioniPA(e) {
     const out = JSON.stringify(data);
     
     if (params.callback) {
-      return addCorsHeaders(ContentService.createTextOutput(params.callback + '(' + out + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT));
+      return ContentService.createTextOutput(params.callback + '(' + out + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
     
-    return addCorsHeaders(ContentService.createTextOutput(out)
-      .setMimeType(ContentService.MimeType.JSON));
+    return ContentService.createTextOutput(out)
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -561,10 +587,10 @@ function doPostRegistrazioniPA(e) {
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     Logger.log(err);
-    return addCorsHeaders(ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: err.message
-    })).setMimeType(ContentService.MimeType.JSON));
+    })).setMimeType(ContentService.MimeType.JSON);
   } finally {
     try { lock.releaseLock(); } catch (e) {}
   }
