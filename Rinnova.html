@@ -94,6 +94,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: background 0.3s;
+            grid-column: 1 / -1;
         }
 
         .verify-btn:hover {
@@ -195,6 +196,10 @@
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             padding: 16px;
+            display: none;
+        }
+
+        #riepilogoPrenotazione.show {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -259,13 +264,14 @@
 
                 <div class="info-box" id="infoBox">
                     <h3>📋 Prenotazione Trovata</h3>
+                    <p><strong>Check-In Originale:</strong> <span id="infoCheckInOriginale">-</span></p>
                     <p><strong>Check-Out Attuale:</strong> <span id="infoCheckOut">-</span></p>
                     <p><strong>Polizza Attuale:</strong> <span id="infoPolizza">-</span></p>
                     <p><strong>Telegram:</strong> <span id="infoTelegram">-</span></p>
                 </div>
 
                 <div class="form-group">
-                    <label for="totaleGiorni">Totale Giorni *</label>
+                    <label for="totaleGiorni">Giorni da Aggiungere *</label>
                     <input type="number" id="totaleGiorni" name="totaleGiorni" min="1" disabled required>
                 </div>
 
@@ -300,7 +306,7 @@
 
                 <div id="riepilogoPrenotazione">
                     <div id="riepilogoDettagli">
-                        <span>Numero Camera: <strong id="cameraRiassunto">--</strong></span>
+                        <span>Camera: <strong id="cameraRiassunto">--</strong></span>
                         <span>Prezzo Camera: <strong id="prezzoCameraRiassunto">€ 0,00</strong></span>
                         <span>Prezzo Polizza: <strong id="prezzoPolizzaRiassunto">€ 0,00</strong></span>
                     </div>
@@ -321,8 +327,7 @@
 
     <script>
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
-        const DIPENDENTI_GID = '663672816'; 
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby7VE5dY4lCa_KAAnAaq_IVQoGvupRy5TWncIjO1ByQlFsunwsi8hgiZyiDtqG323L7/exec';
 
         const form = document.getElementById('rinnovoForm');
         const verificaBtn = document.getElementById('verificaBtn');
@@ -330,6 +335,7 @@
         const exportBtn = document.getElementById('exportBtn');
         const messageDiv = document.getElementById('message');
         const infoBox = document.getElementById('infoBox');
+        const riepilogoPrenotazione = document.getElementById('riepilogoPrenotazione');
 
         const cameraRiassunto = document.getElementById('cameraRiassunto');
         const prezzoCameraRiassunto = document.getElementById('prezzoCameraRiassunto');
@@ -349,23 +355,60 @@
             'Poseidon': 1275
         };
 
-        // --- FUNZIONE DI UTILITÀ AGGIUNTA ---
-        // Funzione robusta per ottenere valori dall'oggetto prenotazione, 
-        // ignorando maiuscole/minuscole o trattini.
-        function getPrenotazioneValue(prenotazione, keys, defaultValue = '') {
+        const prezziCamere = {
+            'Essential': 85.00,
+            'Classic': 110.00,
+            'Suite': 170.00,
+            'Suite+': 200.00,
+            'Deluxe': 235.00,
+            'Divinity': 250.00
+        };
+
+        const cameraData = {
+            'Essential': [1, 2, 3, 100, 101, 102, 200, 201, 202, 300, 301, 302, 400, 401, 402, 500, 501, 502, 600, 601, 602, 700, 701, 702, 800, 801, 802],
+            'Classic': [4, 6, 8, 9, 103, 104, 105, 106, 107, 108, 109, 110, 203, 205, 207, 209, 303, 304, 305, 306, 307, 308, 309, 310, 403, 405, 407, 409, 503, 504, 505, 506, 507, 508, 509, 510, 603, 605, 607, 609, 703, 704, 705, 706, 707, 708, 709, 710, 803, 805, 807, 809],
+            'Suite+': [5, 204, 404, 604],
+            'Suite': [7, 206, 406, 606],
+            'Deluxe': [900, 903, 904],
+            'Divinity': [901, 902]
+        };
+
+        const cameraTipo = {};
+        Object.keys(cameraData).forEach(tipo => {
+            cameraData[tipo].forEach(camera => {
+                cameraTipo[camera] = tipo;
+            });
+        });
+
+        function getValueRobust(obj, keys, defaultValue = '') {
             for (const key of keys) {
-                if (prenotazione[key] !== undefined && prenotazione[key] !== null) {
-                    return prenotazione[key];
+                if (obj[key] !== undefined && obj[key] !== null) {
+                    return obj[key];
                 }
             }
             return defaultValue;
         }
-        // --- FINE FUNZIONE DI UTILITÀ ---
 
         function parseCurrencyToNumber(value) {
             if (!value) return 0;
             if (typeof value === 'number') return value;
             return parseFloat(String(value).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0;
+        }
+
+        function calculateRoomPrice(tipoCamera, totaleGiorni) {
+            const prezzoGiornaliero = prezziCamere[tipoCamera] || 0;
+            
+            if (totaleGiorni <= 30) {
+                return Math.floor((prezzoGiornaliero * totaleGiorni) * 100) / 100;
+            }
+            
+            // Se > 30 giorni: (prezzo * 30) + (giorni_extra * prezzo) + (prezzo * 35%)
+            const giorniExtra = totaleGiorni - 30;
+            const baseSoggiorno = prezzoGiornaliero * 30;
+            const costoExtra = prezzoGiornaliero * giorniExtra;
+            const supplemento = prezzoGiornaliero * 0.35;
+            
+            return Math.floor((baseSoggiorno + costoExtra + supplemento) * 100) / 100;
         }
 
         function updateSummary() {
@@ -374,18 +417,22 @@
                 prezzoCameraRiassunto.textContent = formatter.format(0);
                 prezzoPolizzaRiassunto.textContent = formatter.format(0);
                 totaleRiassunto.textContent = formatter.format(0);
+                riepilogoPrenotazione.classList.remove('show');
                 exportBtn.disabled = true;
                 return;
             }
 
             const numeroCameraValue = document.getElementById('numeroCamera').value.trim();
-            const totaleGiorniValue = parseInt(document.getElementById('totaleGiorni').value) || 0;
+            const tipoCamera = cameraTipo[numeroCameraValue] || null;
+            const giorniRinnovo = parseInt(document.getElementById('totaleGiorni').value) || 0;
             const polizzaSelect = document.getElementById('polizza');
             const giorniPoseidonInput = document.getElementById('giorniPoseidon');
 
-            const prezzoCamera = parseCurrencyToNumber(getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Camera', 'prezzo camera', 'PrezzoCamera'], '0'));
-
-            let polizzaSelezionata = polizzaSelect.value || getPrenotazioneValue(prenotazioneCorrente, ['Polizza', 'polizza'], '//');
+            // Il prezzo del rinnovo è semplicemente: Giorni_Rinnovo × Prezzo_Camera
+            const prezzoGiornaliero = prezziCamere[tipoCamera] || 0;
+            let prezzoCamera = Math.floor((prezzoGiornaliero * giorniRinnovo) * 100) / 100;
+            
+            let polizzaSelezionata = polizzaSelect.value || getValueRobust(prenotazioneCorrente, ['Polizza', 'polizza'], '//');
             if (!polizzaSelezionata) polizzaSelezionata = '//';
 
             let prezzoPolizza = prezziPolizze[polizzaSelezionata] || 0;
@@ -396,15 +443,20 @@
                 prezzoPolizza = prezziPolizze['Poseidon'] + incremento;
             }
 
-            const totaleCamera = Math.floor(prezzoCamera * totaleGiorniValue * 100) / 100;
-            const totale = Math.floor((totaleCamera + prezzoPolizza) * 100) / 100;
+            const totale = Math.floor((prezzoCamera + prezzoPolizza) * 100) / 100;
 
             cameraRiassunto.textContent = numeroCameraValue || '--';
             prezzoCameraRiassunto.textContent = formatter.format(prezzoCamera);
             prezzoPolizzaRiassunto.textContent = formatter.format(prezzoPolizza);
             totaleRiassunto.textContent = formatter.format(totale);
 
-            exportBtn.disabled = !(totaleGiorniValue > 0);
+            if (giorniRinnovo > 0) {
+                riepilogoPrenotazione.classList.add('show');
+                exportBtn.disabled = false;
+            } else {
+                riepilogoPrenotazione.classList.remove('show');
+                exportBtn.disabled = true;
+            }
         }
 
         function formatDate(date) {
@@ -441,6 +493,7 @@
             document.getElementById('dipendente').value = '';
             document.getElementById('dipendente').disabled = true;
             submitBtn.disabled = true;
+            updateSummary();
         }
 
         async function loadDipendenti() {
@@ -479,14 +532,12 @@
                     option.textContent = value;
                     dipendenti.appendChild(option);
                 });
-                showMessage('Errore caricamento dipendenti', 'error');
             }
         }
         
         document.getElementById('cliente').addEventListener('input', resetForm);
         document.getElementById('numeroCamera').addEventListener('input', resetForm);
 
-        // 1. Verifica camera (utilizza Apps Script)
         verificaBtn.addEventListener('click', async () => {
             const cliente = document.getElementById('cliente').value.trim();
             const camera = document.getElementById('numeroCamera').value.trim();
@@ -511,23 +562,19 @@
                 if (!result.success || !result.found) {
                     showMessage(`❌ ${result.message || 'Nessuna prenotazione attiva trovata per questo Cliente e Camera'}`, 'error');
                     resetForm();
-                    updateSummary();
                     return;
                 }
 
                 const ultimaPrenotazione = result.data;
                 
-                // --- MODIFICA 1: Lettura robusta della data di Check-Out ---
-                const checkOutDateStr = getPrenotazioneValue(ultimaPrenotazione, [
-                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
-                ]);
+                const checkOutDateStr = getValueRobust(ultimaPrenotazione, ['Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out']);
+                const checkInOriginaleStr = getValueRobust(ultimaPrenotazione, ['Check-In Originale', 'check-in originale', 'CheckInOriginale']);
 
                 if (!checkOutDateStr) {
-                    showMessage(`❌ Errore: Impossibile trovare una data di Check-Out valida per questa prenotazione.`, 'error');
+                    showMessage(`❌ Errore: Impossibile trovare una data di Check-Out valida.`, 'error');
                     resetForm();
                     return;
                 }
-                // --- FINE MODIFICA 1 ---
 
                 const checkOutDate = new Date(checkOutDateStr);
                 checkOutDate.setHours(0, 0, 0, 0); 
@@ -548,8 +595,7 @@
                 const giorniPoseidonInput = document.getElementById('giorniPoseidon');
                 const dipendenteSelect = document.getElementById('dipendente');
 
-                // Polizza (con lettura robusta)
-                const oldPolizza = getPrenotazioneValue(ultimaPrenotazione, ['Polizza', 'polizza'], '//');
+                const oldPolizza = getValueRobust(ultimaPrenotazione, ['Polizza', 'polizza'], '//');
                 
                 if (oldPolizza && oldPolizza !== '//') {
                     polizzaSelect.value = oldPolizza;
@@ -572,10 +618,10 @@
                 totaleGiorniInput.disabled = false;
                 dipendenteSelect.disabled = false;
                 
-                // Mostra info
-                document.getElementById('infoCheckOut').textContent = checkOutDateStr; // Ora ha il valore corretto
+                document.getElementById('infoCheckInOriginale').textContent = checkInOriginaleStr || '--';
+                document.getElementById('infoCheckOut').textContent = checkOutDateStr;
                 document.getElementById('infoPolizza').textContent = oldPolizza === '//' ? 'Nessuna' : oldPolizza;
-                document.getElementById('infoTelegram').textContent = getPrenotazioneValue(ultimaPrenotazione, ['Telegram', 'telegram'], 'N/A');
+                document.getElementById('infoTelegram').textContent = getValueRobust(ultimaPrenotazione, ['Telegram', 'telegram'], 'N/A');
                 infoBox.classList.add('show');
                 
                 submitBtn.disabled = false;
@@ -591,7 +637,6 @@
             }
         });
 
-        // 2. Calcolo Check-Out
         document.getElementById('totaleGiorni').addEventListener('input', () => {
             const checkOutInput = document.getElementById('checkOut');
             checkOutInput.value = ''; 
@@ -601,29 +646,22 @@
             const giorniDaAggiungere = parseInt(document.getElementById('totaleGiorni').value) || 0;
             
             if (giorniDaAggiungere > 0) {
-                // --- MODIFICA 2: Lettura robusta ---
-                const vecchioCheckOutDateStr = getPrenotazioneValue(prenotazioneCorrente, [
-                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
-                ]);
+                const vecchioCheckOutDateStr = getValueRobust(prenotazioneCorrente, ['Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out']);
 
                 if (!vecchioCheckOutDateStr) {
-                    console.error("Errore critico: check-out non trovato in prenotazioneCorrente");
+                    console.error("Errore critico: check-out non trovato");
                     return;
                 }
-                // --- FINE MODIFICA 2 ---
 
                 const vecchioCheckOut = new Date(vecchioCheckOutDateStr); 
-                
-                const giorniTotaliDaAggiungere = 1 + giorniDaAggiungere;
-
                 const nuovoCheckOut = new Date(vecchioCheckOut);
-                nuovoCheckOut.setDate(nuovoCheckOut.getDate() + giorniTotaliDaAggiungere); 
+                nuovoCheckOut.setDate(nuovoCheckOut.getDate() + giorniDaAggiungere); 
                 
                 checkOutInput.value = formatDate(nuovoCheckOut);
             }
+            updateSummary();
         });
 
-        // Gestione input Giorni Poseidon
         document.getElementById('polizza').addEventListener('change', function() {
             const giorniPoseidon = document.getElementById('giorniPoseidon');
             
@@ -636,9 +674,11 @@
                 giorniPoseidon.disabled = true;
                 giorniPoseidon.value = '0';
             }
+            updateSummary();
         });
 
-        // Submit form
+        document.getElementById('giorniPoseidon').addEventListener('input', updateSummary);
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -662,18 +702,9 @@
             submitBtn.textContent = 'Registrazione in corso...';
             
             try {
-                // --- MODIFICA 3: Lettura robusta ---
-                const vecchioCheckOutDateStr = getPrenotazioneValue(prenotazioneCorrente, [
-                    'Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out'
-                ]);
-                // --- FINE MODIFICA 3 ---
+                const vecchioCheckOutDateStr = getValueRobust(prenotazioneCorrente, ['Check-Out', 'Check-out', 'Checkout', 'Check Out', 'check-out']);
+                const checkInOriginaleStr = getValueRobust(prenotazioneCorrente, ['Check-In Originale', 'check-in originale', 'CheckInOriginale']);
 
-                const vecchioCheckOut = new Date(vecchioCheckOutDateStr);
-                const nuovoCheckIn = new Date(vecchioCheckOut);
-                nuovoCheckIn.setDate(nuovoCheckIn.getDate() + 1); 
-                
-                const checkInFormatted = formatDate(nuovoCheckIn);
-                
                 const dataToSend = {
                     app: 'prenotazioni',
                     numeroCamera: document.getElementById('numeroCamera').value.trim(),
@@ -684,13 +715,14 @@
                     dipendente: dipendente,
                     giorniPoseidon: giorniPoseidon,
                     
-                    // Lettura robusta dei campi nascosti
-                    telegram: getPrenotazioneValue(prenotazioneCorrente, ['Telegram', 'telegram']),
-                    dataNascita: getPrenotazioneValue(prenotazioneCorrente, ['Data di Nascita', 'data di nascita', 'Data Nascita']),
-                    checkIn: checkInFormatted, 
+                    telegram: getValueRobust(prenotazioneCorrente, ['Telegram', 'telegram']),
+                    dataNascita: getValueRobust(prenotazioneCorrente, ['Data di Nascita', 'data di nascita', 'Data Nascita']),
+                    checkIn: checkInOriginaleStr || vecchioCheckOutDateStr,
+                    checkInOriginale: checkInOriginaleStr,
                     
-                    prezzoCamera: getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Camera', 'prezzo camera'], '€ 0,00'), 
-                    prezzoPolizza: getPrenotazioneValue(prenotazioneCorrente, ['Prezzo Polizza', 'prezzo polizza'], '€ 0,00'),
+                    prezzoCamera: prezzoCameraRiassunto.textContent,
+                    prezzoPolizza: prezzoPolizzaRiassunto.textContent,
+                    totalePrenotazione: totaleRiassunto.textContent,
                     
                     append: true 
                 };
@@ -698,22 +730,17 @@
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
                     headers: {
-                        // text/plain evita la preflight CORS mantenendo il body JSON
-                        'Content-Type': 'text/plain;charset=utf-8',
-                        'Accept': 'application/json'
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
                     },
-                    body: JSON.stringify(dataToSend)
+                    body: new URLSearchParams(dataToSend)
                 });
 
-                let responseText = '';
+                const responseText = await response.text();
                 let resultJson = null;
                 try {
-                    responseText = await response.text();
-                    if (responseText) {
-                        resultJson = JSON.parse(responseText);
-                    }
+                    resultJson = JSON.parse(responseText);
                 } catch (parseErr) {
-                    // Risposta non JSON: verrà gestita sotto
+                    console.error('Errore parsing risposta:', parseErr);
                 }
 
                 if (!response.ok || !resultJson || resultJson.success !== true) {
@@ -742,7 +769,6 @@
             }
         });
 
-        // Inizializza al caricamento
         loadDipendenti();
         resetForm();
     </script>
