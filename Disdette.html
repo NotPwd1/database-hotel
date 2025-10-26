@@ -43,6 +43,17 @@
         .message.error { background: #ef4444; color: white; }
         .message.show { display: block; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* Stili login */
+        .login-container { text-align: center; padding: 60px 20px; }
+        .login-box { background: white; border-radius: 10px; padding: 40px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .login-box h2 { color: #333; margin-bottom: 10px; }
+        .login-box p { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .login-box input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; margin-bottom: 15px; }
+        .login-box input:focus { outline: none; border-color: #576c7e; }
+        .login-box button { width: 100%; padding: 12px; background: #576c7e; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        .login-box button:hover { background: #465360; }
+        .login-error { color: #ef4444; font-size: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -52,35 +63,88 @@
         <h1>Gestione Disdette</h1>
         <p class="subtitle">Gestisci le scadenze delle camere e marca le disdette effettuate</p>
         
-        <div class="filters">
-            <button class="filter-btn green" id="btnDomani">🔔 Scadono Domani</button>
-            <button class="filter-btn red" id="btnOggi">⚠️ Scadute Oggi</button>
+        <div id="loginSection">
+            <div class="login-container">
+                <div class="login-box">
+                    <h2>🔒 Accesso Richiesto</h2>
+                    <p>Inserisci la password per accedere</p>
+                    <input type="password" id="passwordInput" placeholder="Password" />
+                    <button onclick="checkPassword()">Accedi</button>
+                    <div class="login-error" id="loginError"></div>
+                </div>
+            </div>
         </div>
-        
-        <div class="loading" id="loading">
-            <svg class="animate-spin h-8 w-8 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p style="margin-top: 15px;">Caricamento dati...</p>
+
+        <div id="appSection" style="display: none;">
+            <div class="filters">
+                <button class="filter-btn green" id="btnDomani">🔔 Scadono Domani</button>
+                <button class="filter-btn red" id="btnOggi">⚠️ Scadute Oggi</button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <svg class="animate-spin h-8 w-8 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p style="margin-top: 15px;">Caricamento dati...</p>
+            </div>
+            
+            <div class="lista-scadenze" id="listaScadenze"></div>
         </div>
-        
-        <div class="lista-scadenze" id="listaScadenze"></div>
     </div>
 
     <script>
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const DISDETTE_GID = '692494043';
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyyu653CfAXW0y8ee5BAcnHBc_n8nQOm-IwyoDnorhKeDETUcILB1cLRBU8AwZD801f/exec';
+        
+        // ⚙️ CONFIGURAZIONE: Aggiungi qui le password autorizzate
+        const AUTHORIZED_PASSWORDS = [
+            'pwd3772',  // Cambla con una password sicura
+            'sharky1344',
+            'test'
+        ];
         
         let allScadenze = [];
         let currentFilter = 'all';
         
+        const loginSection = document.getElementById('loginSection');
+        const appSection = document.getElementById('appSection');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginError = document.getElementById('loginError');
         const loading = document.getElementById('loading');
         const listaScadenze = document.getElementById('listaScadenze');
         const btnDomani = document.getElementById('btnDomani');
         const btnOggi = document.getElementById('btnOggi');
         const messageBox = document.getElementById('messageBox');
+
+        function checkPassword() {
+            const password = passwordInput.value.trim();
+            
+            if (!password) {
+                loginError.textContent = 'Inserisci la password';
+                return;
+            }
+            
+            if (AUTHORIZED_PASSWORDS.includes(password)) {
+                // Password corretta
+                loginError.textContent = '';
+                loginSection.style.display = 'none';
+                appSection.style.display = 'block';
+                loadData();
+            } else {
+                // Password errata
+                loginError.textContent = '❌ Password errata';
+                passwordInput.value = '';
+            }
+        }
+
+        // Permetti di premere Enter per login
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
 
         function getToday() {
             const today = new Date();
@@ -370,7 +434,10 @@
             renderList();
         });
 
-        loadData();
+        // Focus automatico su input password
+        window.addEventListener('load', () => {
+            passwordInput.focus();
+        });
     </script>
 </body>
 </html>
