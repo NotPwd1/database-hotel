@@ -126,7 +126,7 @@
     </form>
 
     <script>
-        const webAppUrl = 'https://script.google.com/macros/s/AKfycbzYmJtNUVrDqjOGfuKMksSwi_HM4fLbZJu8_-vM1lFp6sOJpstEDpR8fRwKwhTIfWqS/exec';
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycby7VE5dY4lCa_KAAnAaq_IVQoGvupRy5TWncIjO1ByQlFsunwsi8hgiZyiDtqG323L7/exec';
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const PRENOTAZIONI_GID = '1372958227';
         const DISDETTE_GID = '692494043';
@@ -237,13 +237,30 @@
         
         setTimeout(loadDipendenti, 100);
 
+        function calculateRoomPrice(tipoCamera, totaleGiorni) {
+            const prezzioGiornaliero = prezziCamere[tipoCamera] || 0;
+            
+            if (totaleGiorni <= 30) {
+                return prezzioGiornaliero * totaleGiorni;
+            }
+            
+            // Se > 30 giorni: (prezzio * 30) + (giorni_extra * prezzo) + (prezzo * 35%)
+            const giorniExtra = totaleGiorni - 30;
+            const baseSoggiorno = prezzioGiornaliero * 30;
+            const costoExtra = prezzioGiornaliero * giorniExtra;
+            const supplemento = prezzioGiornaliero * 0.35;
+            
+            return Math.floor((baseSoggiorno + costoExtra + supplemento) * 100) / 100;
+        }
+
         function updateSummary() {
             const selectedCamera = numeroCamera.value;
             const tipoCamera = selectedCamera ? cameraTipo[selectedCamera] : null;
             const selectedPolizza = polizza.value;
             const giorniExtraPoseidon = parseInt(giorniPoseidon.value) || 0;
+            const giorni = parseInt(totaleGiorni.value) || 0;
 
-            let prezzoCamera = tipoCamera ? prezziCamere[tipoCamera] : 0.00;
+            let prezzoCamera = tipoCamera ? calculateRoomPrice(tipoCamera, giorni) : 0.00;
             let prezzoPolizza = prezziPolizzeBase[selectedPolizza] || 0.00;
 
             if (selectedPolizza === 'Poseidon') {
@@ -253,19 +270,10 @@
                 prezzoPolizza = prezziPolizzeBase['Poseidon'] + costoAggiuntivo;
             }
 
-            const nights = parseInt(totaleGiorni.value) || 0;
-            let roomBaseTotal = prezzoCamera * nights;
-
-            let surcharge = 0;
-            if (nights > 30) {
-                surcharge = Math.floor(roomBaseTotal * 0.35 * 100) / 100;
-            }
-
-            const roomTotal = Math.floor((roomBaseTotal + surcharge) * 100) / 100;
-            const totale = Math.floor((roomTotal + prezzoPolizza) * 100) / 100;
+            const totale = Math.floor((prezzoCamera + prezzoPolizza) * 100) / 100;
 
             document.getElementById('cameraRiassunto').textContent = selectedCamera || "--";
-            prezzoCameraRiassunto.textContent = formatter.format(roomTotal);
+            prezzoCameraRiassunto.textContent = formatter.format(prezzoCamera);
             prezzoPolizzaRiassunto.textContent = formatter.format(prezzoPolizza);
             totaleRiassunto.textContent = formatter.format(totale);
         }
@@ -291,6 +299,8 @@
         });
 
         numeroCamera.addEventListener('change', updateSummary);
+        totaleGiorni.addEventListener('change', updateSummary);
+        totaleGiorni.addEventListener('input', updateSummary);
         
         function calculateCheckOut() {
             const checkInDate = new Date(checkIn.value);
@@ -308,11 +318,11 @@
             } else {
                 checkOut.value = '';
             }
+            updateSummary();
         }
 
         checkIn.addEventListener('change', calculateCheckOut);
         totaleGiorni.addEventListener('change', calculateCheckOut);
-        totaleGiorni.addEventListener('input', updateSummary);
         
         form.addEventListener('reset', () => {
             setTimeout(() => {
@@ -334,7 +344,6 @@
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                // Carica prenotazioni
                 const prenotazioniUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${PRENOTAZIONI_GID}`;
                 const prenotazioniResp = await fetch(prenotazioniUrl);
                 const prenotazioniText = await prenotazioniResp.text();
@@ -359,7 +368,6 @@
                     }
                 }
 
-                // Carica disdette
                 const disdetteUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${DISDETTE_GID}`;
                 const disdetteResp = await fetch(disdetteUrl);
                 const disdetteText = await disdetteResp.text();
@@ -379,7 +387,6 @@
                     }
                 }
 
-                // Determina camere occupate
                 const occupiedCameras = new Set();
 
                 camereConPrenotazioneAttiva.forEach(camera => {
@@ -425,6 +432,7 @@
                 dataNascita: document.getElementById('dataNascita').value,
                 totaleGiorni: totaleGiorni.value,
                 checkIn: checkIn.value,
+                checkInOriginale: checkIn.value,
                 checkOut: checkOut.value,
                 polizza: polizza.value,
                 dipendente: dipendenteSelect.value,
