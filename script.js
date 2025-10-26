@@ -1,6 +1,6 @@
 /**
  * Script Apps Script Definitivo - Supporta Prenotazioni, Registrazioni PA, Rinnovi e Disdette
- * VERSIONE CORRETTA SENZA .setHeader()
+ * AGGIORNATO PER GESTIRE "Check-In Originale"
  */
 
 const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
@@ -158,7 +158,6 @@ function doGetDisdette(e) {
   try {
     const params = (e && e.parameter) || {};
     
-    // Supporto GET per aggiornamento (JSONP fallback)
     if (params.row && params.field && params.value !== undefined) {
       const row = parseInt(params.row, 10);
       const ss = SpreadsheetApp.openById(SHEET_ID);
@@ -195,7 +194,6 @@ function doGetDisdette(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Altrimenti restituisci tutti i dati
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheet = ss.getSheetByName(SHEET_DISDETTE);
     if (!sheet) throw new Error('Sheet Disdette not found');
@@ -374,6 +372,9 @@ function doPostPrenotazioni(e) {
           }
           if (lk === 'checkin' || lk === 'check-in' || lk === 'check in') {
             return body.checkIn || '';
+          }
+          if (lk === 'check-in originale' || lk === 'checkinoriginale' || lk === 'check in originale') {
+            return body.checkInOriginale || body.checkIn || '';
           }
           if (lk === 'checkout' || lk === 'check-out' || lk === 'check out') {
             return body.checkOut || '';
