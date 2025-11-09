@@ -45,9 +45,8 @@
         @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
         /* Stili login */
-    .login-container { text-align: center; padding: 60px 20px; }
-
-    .login-box { background: white; border-radius: 10px; padding: 40px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .login-container { text-align: center; padding: 60px 20px; }
+        .login-box { background: white; border-radius: 10px; padding: 40px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .login-box h2 { color: #333; margin-bottom: 10px; }
         .login-box p { color: #666; margin-bottom: 30px; font-size: 14px; }
         .login-box input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; margin-bottom: 15px; }
@@ -59,15 +58,8 @@
 </head>
 <body>
     <div class="message" id="messageBox"></div>
-    <div id="loginBox" class="login-box" style="display:none; max-width:400px; margin:40px auto 0 auto;">
-        <h2>Login Operatore</h2>
-        <form id="loginForm">
-            <input type="password" id="password" name="password" required placeholder="Password disdette">
-            <div id="loginError" class="login-error"></div>
-            <button type="submit" id="loginBtn">Accedi</button>
-        </form>
-    </div>
-    <div class="container" id="mainContainer" style="display:none;">
+    
+    <div class="container">
         <h1>Gestione Disdette</h1>
         <p class="subtitle">Gestisci le scadenze delle camere e marca le disdette effettuate</p>
         
@@ -92,38 +84,36 @@
     <script>
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const DISDETTE_GID = '692494043';
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
-    /**
-     * Ensure the user is authenticated for an action.
-     * If a session token exists, try to resolve the author via a whoami endpoint.
-     * Otherwise fall back to prompting the operator password for the action.
-     * Returns the author string on success, or null on failure.
-     */
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzt2O-4Je74ZQnRW8GNBEVq6IwNFO4eP5LTDEEVxDWe5NIkwy_r-VrcTFr-1EIKCQcG/exec';
+        
     // NOTE: per-beta usare autenticazione per-azione.
     // Quando si conferma una disdetta viene chiesto la password e
     // il server risponde con { success: true, author: 'Nome' }.
-    let allScadenze = [];
-    let currentFilter = 'all';
-
-    // UI elements (avoid duplicate variable names)
-    const loading = document.getElementById('loading');
-    const listaScadenze = document.getElementById('listaScadenze');
-    const btnDomani = document.getElementById('btnDomani');
-    const btnOggi = document.getElementById('btnOggi');
-    const messageBox = document.getElementById('messageBox');
+        
+        let allScadenze = [];
+        let currentFilter = 'all';
+        
+        const loginSection = document.getElementById('loginSection');
+        const appSection = document.getElementById('appSection');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginError = document.getElementById('loginError');
+        const loading = document.getElementById('loading');
+        const listaScadenze = document.getElementById('listaScadenze');
+        const btnDomani = document.getElementById('btnDomani');
+        const btnOggi = document.getElementById('btnOggi');
+        const messageBox = document.getElementById('messageBox');
 
         /**
          * Prompt per password per singola azione. Ritorna l'author (string)
          * se la password è valida, altrimenti null.
          */
         async function promptPasswordForAction() {
-            // Richiedi una singola password per le azioni su disdette.
             for (let attempt = 0; attempt < 3; attempt++) {
                 const pwd = window.prompt('Inserisci la password per confermare l\'azione:');
                 if (pwd === null) return null; // utente annulla
 
                 try {
-                    const resp = await fetch(`${WEB_APP_URL}?app=checkPassword&password=${encodeURIComponent(pwd)}&page=disdette`);
+                    const resp = await fetch(`${WEB_APP_URL}?app=checkPassword&password=${encodeURIComponent(pwd)}`);
                     const data = await resp.json();
                     if (data && data.success && data.author) {
                         return data.author;
@@ -352,19 +342,13 @@
                     resolve(data);
                 };
                 
-                // If user is globally authenticated for disdette, reuse that author
+                // Chiedi la password per-action e aggiungi Autore
                 (async () => {
-                    let author = null;
-                    if (isAuth('disdette')) {
-                        author = getAuthAuthor('disdette');
-                    }
+                    const author = await promptPasswordForAction();
                     if (!author) {
-                        author = await promptPasswordForAction();
-                        if (!author) {
-                            cleanup();
-                            reject(new Error('Autenticazione annullata o non valida'));
-                            return;
-                        }
+                        cleanup();
+                        reject(new Error('Autenticazione annullata o non valida'));
+                        return;
                     }
                     params.append('Autore', author);
                     script.src = `${WEB_APP_URL}?${params.toString()}`;
@@ -386,12 +370,6 @@
             checkbox.disabled = true;
             
             try {
-                // Verifica autenticazione disdette
-                const author = await ensureAuthenticated(WEB_APP_URL, true);
-                if (!author) {
-                    throw new Error('Autenticazione richiesta per effettuare disdette');
-                }
-
                 const result = await jsonpUpdateDisdetta(rowNumber, isChecked);
                 
                 if (!result || !result.success) {
@@ -448,120 +426,9 @@
             renderList();
         });
 
-        // Auth System
-        const AUTH_TYPES = {
-            SYSTEM: 'system',
-            DISDETTE: 'disdette'
-        };
-
-        function getSessionToken() {
-            return localStorage.getItem('sessionToken');
-        }
-
-        function setSessionToken(token) {
-            localStorage.setItem('sessionToken', token);
-        }
-
-        function clearSession() {
-            localStorage.removeItem('sessionToken');
-        }
-
-        function isAuth() {
-            return !!getSessionToken();
-        }
-
-        async function login(webAppUrl, app, password) {
-            try {
-                const resp = await fetch(`${webAppUrl}?app=auth&type=${app}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ password: password })
-                });
-                
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const data = await resp.json();
-                
-                if (!data.success) {
-                    throw new Error(data.error || 'Login fallito');
-                }
-
-                setSessionToken(data.token);
-                return true;
-            } catch (err) {
-                console.error('Errore login:', err);
-                return false;
-            }
-        }
-
-        // Login UI
-        const loginBox = document.getElementById('loginBox');
-        const loginForm = document.getElementById('loginForm');
-        const loginBtn = document.getElementById('loginBtn');
-        const passwordInput = document.getElementById('password');
-        const loginError = document.getElementById('loginError');
-        const mainContainer = document.getElementById('mainContainer');
-
-        function showLogin() {
-            loginBox.style.display = 'block';
-            mainContainer.style.display = 'none';
-            passwordInput.value = '';
-            loginError.style.display = 'none';
-            setTimeout(() => passwordInput.focus(), 100);
-        }
-
-        function showApp() {
-            loginBox.style.display = 'none';
-            mainContainer.style.display = 'block';
-        }
-
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const pwd = passwordInput.value.trim();
-
-            if (!pwd) {
-                loginError.textContent = 'Inserisci la password';
-                loginError.style.display = 'block';
-                passwordInput.focus();
-                return;
-            }
-
-            loginBtn.disabled = true;
-            loginError.style.display = 'none';
-            loginBtn.textContent = 'Verifica...';
-
-            try {
-                const authenticated = await login(WEB_APP_URL, 'disdette', pwd);
-                if (authenticated) {
-                    showApp();
-                    loadData();
-                } else {
-                    loginError.textContent = 'Password non valida';
-                    loginError.style.display = 'block';
-                    clearSession();
-                }
-            } catch (err) {
-                loginError.textContent = 'Errore di connessione';
-                loginError.style.display = 'block';
-                clearSession();
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Accedi';
-            }
-        });
-
-        // Logout su doppio click sul titolo
-        document.querySelector('h1').addEventListener('dblclick', function() {
-            clearSession();
-            showLogin();
-        });
-
-        // Avvio
+        // Avvia caricamento dati senza login globale (usiamo prompt per-action)
         window.addEventListener('load', () => {
-            if (isAuth()) {
-                showApp();
-                loadData();
-            } else {
-                showLogin();
-            }
+            loadData();
         });
     </script>
 </body>
