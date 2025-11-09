@@ -95,69 +95,12 @@
     </div>
   </div>
 
-    <script>
-        // Auth System
-        const AUTH_TYPES = {
-            SYSTEM: 'system',
-            DISDETTE: 'disdette'
-        };
+  <script>
+  // >>> CONFIGURAZIONE: URL di deploy del tuo Apps Script (aggiornato per il progetto recente)
+  // Assicura che la deployment abbia "Execute as: Me" e l'accesso desiderato.
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzt2O-4Je74ZQnRW8GNBEVq6IwNFO4eP5LTDEEVxDWe5NIkwy_r-VrcTFr-1EIKCQcG/exec';
 
-        function getSessionToken() {
-            return localStorage.getItem('sessionToken');
-        }
-
-        function setSessionToken(token) {
-            localStorage.setItem('sessionToken', token);
-        }
-
-        function clearSession() {
-            localStorage.removeItem('sessionToken');
-        }
-
-        function isAuth() {
-            return !!getSessionToken();
-        }
-
-        async function login(webAppUrl, app, password) {
-            try {
-                const resp = await fetch(`${webAppUrl}?app=auth&type=${app}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ password: password })
-                });
-                
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const data = await resp.json();
-                
-                if (!data.success) {
-                    throw new Error(data.error || 'Login fallito');
-                }
-
-                setSessionToken(data.token);
-                return true;
-            } catch (err) {
-                console.error('Errore login:', err);
-                return false;
-            }
-        }
-
-    // Non richiedere il login solo per la visualizzazione.
-    (function(){
-      const logged = isAuth();
-      if (!logged) {
-        try {
-          const header = document.querySelector('h1');
-          // aggiungiamo un small-note simile alla home
-          const wrapper = document.createElement('div');
-          wrapper.style.marginTop = '8px';
-          wrapper.innerHTML = '<div class="small-note" style="color:#9ca3af;font-size:12px">Visualizzazione pubblica — Accedi per modifiche</div>';
-          if (header && header.parentNode) header.parentNode.insertBefore(wrapper, header.nextSibling);
-        } catch (e) {}
-      }
-    })();
-
-        // >>> CONFIGURAZIONE: URL di deploy del tuo Apps Script (aggiornato per il progetto recente)
-        // Assicura che la deployment abbia "Execute as: Me" e l'accesso desiderato.
-        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';    // Elementi DOM
+    // Elementi DOM
     const listContainer = document.getElementById('registrationsList');
     const loadingIndicator = document.getElementById('loading');
     const messageBox = document.getElementById('messageBox');
@@ -357,7 +300,7 @@
       }
     }
 
-    async function postRiscattato(row, value, author) {
+    async function postRiscattato(row, value) {
       // Proviamo prima POST via fetch; se bloccato da CORS, proviamo JSONP GET fallback
       // (nota: il fallback usa GET per aggiornare lo stato nel foglio e richiede
       // che lo script GAS gestisca parametri row e Riscattato via doGet e supporti callback)
@@ -372,7 +315,6 @@
             params.set('app', 'registrazioniPA');
             params.set('row', String(row));
             params.set('Riscattato', value ? 'true' : 'false');
-            if (author) params.set('Autore', author);
             const res = await fetch(ENDPOINT, {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -396,7 +338,7 @@
         // Fallback JSONP: inviamo i parametri via GET e riceviamo la risposta come callback
         try {
           // JSONP fallback: include app parameter as well
-          const json = await jsonpRequest({ app: 'registrazioniPA', row: row, Riscattato: value, Autore: author });
+          const json = await jsonpRequest({ app: 'registrazioniPA', row: row, Riscattato: value });
           if (!json || !json.success) throw new Error((json && json.error) || 'Errore aggiornamento (JSONP)');
           return json;
         } catch (jsonpErr) {
@@ -472,23 +414,7 @@
         window.open(ENDPOINT + '?format=csv', '_blank');
       });
 
-      // Delegated change handler per checkbox (con prompt password per azione)
-      async function promptPasswordForAction(maxAttempts = 3) {
-        for (let i = 0; i < maxAttempts; i++) {
-          const pwd = window.prompt('Inserisci la password operatore per registrare questa azione:');
-          if (!pwd) return null; // cancelled
-            try {
-            const resp = await fetch(`${ENDPOINT}?app=checkPassword&password=${encodeURIComponent(pwd)}&page=registrazioni`);
-            const data = await resp.json();
-            if (data && data.success && data.author) return data.author;
-          } catch (err) {
-            console.error('Errore validazione password:', err);
-          }
-          alert('Password non valida, riprova.');
-        }
-        return null;
-      }
-
+      // Delegated change handler per checkbox
       document.addEventListener('change', async (ev) => {
         if (!ev.target.matches('.riscattato-checkbox')) return;
         const checkbox = ev.target;
@@ -501,26 +427,6 @@
         // Disabilitiamo la checkbox per evitare double-click mentre la richiesta è in corso.
         checkbox.disabled = true;
         checkbox.dataset.pending = 'true';
-
-        // Prompt per l'autore (password per azione)
-        const author = await promptPasswordForAction();
-        if (!author) {
-          // Utente ha annullato o password non valida: rollback e riabilita checkbox
-          if (localItem) {
-            localItem['Riscattato'] = prevVal;
-            localItem.Status = determineStatus(localItem);
-            updateFilterCounts();
-            renderList();
-          }
-          const newCheckbox = document.querySelector(`.riscattato-checkbox[data-row="${row}"]`);
-          if (newCheckbox) {
-            newCheckbox.disabled = false;
-            newCheckbox.checked = prevVal && String(prevVal).toUpperCase() === 'TRUE';
-            delete newCheckbox.dataset.pending;
-          }
-          return;
-        }
-
         if (localItem) {
           localItem['Riscattato'] = newVal ? 'TRUE' : 'FALSE';
           localItem.Status = determineStatus(localItem);
@@ -528,7 +434,7 @@
           renderList();
         }
         try {
-          const result = await postRiscattato(row, newVal, author);
+          const result = await postRiscattato(row, newVal);
           // Aggiorna conferma lato client con valore normalizzato
           if (localItem) {
             localItem['Riscattato'] = result.Riscattato;
@@ -572,5 +478,5 @@
 
     window.onload = init;
   </script>
-
+</body>
 </html>
