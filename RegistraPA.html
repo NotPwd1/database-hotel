@@ -181,7 +181,7 @@
     <script>
         // Configurazione
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
-        const webAppUrl = 'https://script.google.com/macros/s/AKfycby7VE5dY4lCa_KAAnAaq_IVQoGvupRy5TWncIjO1ByQlFsunwsi8hgiZyiDtqG323L7/exec';
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
 
         const form = document.getElementById('paForm');
         const dipendente = document.getElementById('dipendente');
@@ -250,6 +250,45 @@
             if (elaboratoByPA) elaboratoByPA.textContent = this.value || '--';
         });
 
+        async function promptPasswordForAction(maxAttempts = 3) {
+            for (let i = 0; i < maxAttempts; i++) {
+                const pwd = window.prompt('Inserisci la password operatore per registrare questa azione:');
+                if (!pwd) return null; // cancelled
+                try {
+                    const resp = await fetch(`${webAppUrl}?app=checkPassword&password=${encodeURIComponent(pwd)}&page=registrazioni`);
+                    const data = await resp.json();
+                    if (data && data.success && data.author) return data.author;
+                } catch (err) {
+                    console.error('Errore validazione password:', err);
+                }
+                alert('Password non valida, riprova.');
+            }
+            return null;
+        }
+
+        /**
+         * Ensure authenticated and return the author string.
+         * Tries existing session token via whoami; otherwise prompts password.
+         */
+        async function ensureAuthenticated(webAppUrl, requireAuthor = true) {
+            const token = localStorage.getItem('sessionToken');
+            if (token) {
+                try {
+                    const resp = await fetch(`${webAppUrl}?app=whoami&token=${encodeURIComponent(token)}`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data && data.success && data.author) return data.author;
+                    }
+                } catch (e) {
+                    console.warn('whoami failed:', e);
+                }
+            }
+
+            // fallback to prompting password
+            const author = await promptPasswordForAction();
+            return author || null;
+        }
+
         // Gestione invio form
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -264,13 +303,23 @@
                 return;
             }
             
+            // Verifica autenticazione sistema
+            const authenticatedUser = await ensureAuthenticated(webAppUrl, false);
+            if (!authenticatedUser) {
+                messageDiv.textContent = 'Devi essere autenticato per registrare';
+                messageDiv.className = 'message error';
+                setTimeout(() => { messageDiv.className = 'message'; }, 3000);
+                return;
+            }
+
             const dataToSend = {
                 nomeCliente: document.getElementById('nomeCliente').value,
                 numeroCamera: document.getElementById('numeroCamera').value,
                 dataFinePolizza: document.getElementById('dataFinePolizza').value,
                 dipendente: document.getElementById('dipendente').value,
-                elaboratoDa: window.currentUserEmail || document.getElementById('dipendente').value,
-                descrizione: document.getElementById('descrizione').value || ''
+                elaboratoDa: authenticatedUser,
+                descrizione: document.getElementById('descrizione').value || '',
+                Autore: authenticatedUser
             };
 
             const urlEncodedData = new URLSearchParams(dataToSend);
@@ -279,7 +328,7 @@
                     const response = await fetch(webAppUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                        body: new URLSearchParams(Object.assign({ app: 'registrazioniPA', append: 'true' }, Object.fromEntries(urlEncodedData)))
+                        body: new URLSearchParams(Object.assign({ app: 'registrazioniPA', append: 'true', Autore: authenticatedUser }, dataToSend))
                     });
 
                 messageDiv.textContent = '✓ PA registrato con successo!';
