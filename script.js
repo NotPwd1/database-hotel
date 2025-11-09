@@ -17,86 +17,14 @@ const SHEET_DISDETTE = 'Disdette';
 const SHEET_DIPENDENTI = 'Dipendenti';
 const DISDETTE_GID = '692494043';
 
-// ===== PASSWORD E GESTIONE SESSIONI =====
-// Mappa password -> author identificativo leggibile
+// ===== PASSWORD PER LA VERIFICA (SPOSTATE DAL CLIENT) =====
+// Mappa password -> author identificativo leggibile. Usata da doCheckPassword.
+// Esempio: 'pwd3772' => 'Operatore_A'
 const AUTHORIZED_PASSWORDS_MAP = {
   'pwd3772': 'Operatore_A',
   'sharky1344': 'Operatore_B',
   'test': 'Tester'
 };
-
-// Password specifiche per disdette
-const DISDETTE_PASSWORDS = {
-  'disdette': 'Operatore_Disdette'
-};
-
-// Gestione sessioni (24 ore)
-function createSession(author) {
-  const token = Utilities.getUuid();
-  const session = {
-    token: token,
-    author: author,
-    createdAt: new Date().getTime()
-  };
-  
-  // Salva sessione in PropertiesService (permanente) e in cache (veloce)
-  const scriptProps = PropertiesService.getScriptProperties();
-  scriptProps.setProperty('session_' + token, JSON.stringify(session));
-  
-  // Anche in cache per accesso veloce
-  CacheService.getScriptCache().put(
-    'session_' + token, 
-    JSON.stringify(session), 
-    21600  // 6 ore
-  );
-  
-  return token;
-}
-
-function getSession(token) {
-  if (!token) return null;
-  
-  try {
-    const cache = CacheService.getScriptCache();
-    let sessionData = cache.get('session_' + token);
-    
-    // Se non in cache, prova a recuperare da PropertiesService
-    if (!sessionData) {
-      const scriptProps = PropertiesService.getScriptProperties();
-      sessionData = scriptProps.getProperty('session_' + token);
-      
-      // Se trovato in Properties, rimetti in cache
-      if (sessionData) {
-        cache.put('session_' + token, sessionData, 21600);
-      }
-    }
-    
-    if (!sessionData) return null;
-    
-    const session = JSON.parse(sessionData);
-    const now = new Date().getTime();
-    
-    // Verifica scadenza (24 ore)
-    if (now - session.createdAt > 24 * 3600 * 1000) {
-      cache.remove('session_' + token);
-      PropertiesService.getScriptProperties().deleteProperty('session_' + token);
-      return null;
-    }
-    
-    return session;
-  } catch (e) {
-    console.error('Errore lettura sessione:', e);
-    return null;
-  }
-}
-
-function removeSession(token) {
-  if (token) {
-    // Rimuovi da entrambi Cache e Properties
-    CacheService.getScriptCache().remove('session_' + token);
-    PropertiesService.getScriptProperties().deleteProperty('session_' + token);
-  }
-}
 
 // ===== FUNZIONI CORS =====
 function doOptions(e) {
@@ -107,103 +35,25 @@ function doOptions(e) {
  * Endpoint pubblico per verificare una password inviata dal client.
  * Uso: GET ?app=checkPassword&password=laPassword
  */
-function doLogin(e) {
+function doCheckPassword(e) {
   try {
     const params = (e && e.parameter) || {};
     const pwd = (params.password || '').toString();
-    const page = (params.page || params.app || '').toString().toLowerCase();
 
     if (!pwd) {
-      return ContentService.createTextOutput(JSON.stringify({ 
-        success: false, 
-        message: 'Password mancante' 
-      })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Password mancante' })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    let author = null;
-
-    // Gestione password specifiche per disdette
-    if (page === 'disdette') {
-      author = DISDETTE_PASSWORDS[pwd] || null;
-      if (!author) {
-        return ContentService.createTextOutput(JSON.stringify({ 
-          success: false, 
-          message: 'Password disdette non valida' 
-        })).setMimeType(ContentService.MimeType.JSON);
-      }
-    } else {
-      // Password globali
-      author = AUTHORIZED_PASSWORDS_MAP[pwd] || null;
-      if (!author) {
-        return ContentService.createTextOutput(JSON.stringify({ 
-          success: false, 
-          message: 'Password non valida' 
-        })).setMimeType(ContentService.MimeType.JSON);
-      }
+    const author = AUTHORIZED_PASSWORDS_MAP[pwd] || null;
+    if (author) {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, author: author })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Crea sessione se password valida
-    const token = createSession(author);
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: true, 
-      token: token,
-      author: author
-    })).setMimeType(ContentService.MimeType.JSON);
-
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Password non valida' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    Logger.log('doLogin error: ' + err);
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: false, 
-      error: err.message 
-    })).setMimeType(ContentService.MimeType.JSON);
+    Logger.log('doCheckPassword error: ' + err);
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function doLogout(e) {
-  try {
-    const params = (e && e.parameter) || {};
-    const token = params.token;
-    
-    if (token) {
-      removeSession(token);
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: true 
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: false, 
-      error: err.message 
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// Middleware per verificare l'autenticazione
-function checkAuth(e) {
-  const params = (e && e.parameter) || {};
-  const token = params.token;
-  
-  if (!token) {
-    return { 
-      authenticated: false, 
-      message: 'Token mancante' 
-    };
-  }
-  
-  const session = getSession(token);
-  if (!session) {
-    return { 
-      authenticated: false, 
-      message: 'Sessione scaduta o non valida' 
-    };
-  }
-  
-  return { 
-    authenticated: true, 
-    author: session.author 
-  };
 }
 
 // ===== MAIN ROUTER =====
@@ -212,12 +62,8 @@ function doGet(e) {
   const app = (params.app || params.page || 'prenotazioni').toString().toLowerCase();
   
   // Endpoint per verificare password dal client (password memorizzate server-side)
-  if (app === 'login') {
-    return doLogin(e);
-  }
-  
-  if (app === 'logout') {
-    return doLogout(e);
+  if (app === 'checkpassword' || app === 'checkPassword') {
+    return doCheckPassword(e);
   }
   // Public routing (authentication removed)
   if (params.action === 'findLast' && app === 'prenotazioni') {
@@ -225,26 +71,10 @@ function doGet(e) {
   }
   // Endpoint per ottenere le ultime camere registrate / rinnovate
   if (app === 'lastrooms' || app === 'ultimecamere') {
-    const auth = checkAuth(e);
-    if (!auth.authenticated) {
-      return ContentService.createTextOutput(JSON.stringify({
-        success: false,
-        error: auth.message
-      })).setMimeType(ContentService.MimeType.JSON)
-      .setResponseCode(401);
-    }
     return doGetLastRooms(e);
   }
 
   if (app === 'disdette' || app === 'disdire') {
-    const auth = checkAuth(e);
-    if (!auth.authenticated) {
-      return ContentService.createTextOutput(JSON.stringify({
-        success: false,
-        error: auth.message
-      })).setMimeType(ContentService.MimeType.JSON)
-      .setResponseCode(401);
-    }
     return doGetDisdette(e);
   }
 
