@@ -125,8 +125,88 @@
         </div>
     </form>
 
+    </div>
     <script>
-        const webAppUrl = 'https://script.google.com/macros/s/AKfycby7VE5dY4lCa_KAAnAaq_IVQoGvupRy5TWncIjO1ByQlFsunwsi8hgiZyiDtqG323L7/exec';
+        // Auth System
+        const AUTH_TYPES = {
+            SYSTEM: 'system',
+            DISDETTE: 'disdette'
+        };
+
+        function getSessionToken() {
+            return localStorage.getItem('sessionToken');
+        }
+
+        function setSessionToken(token) {
+            localStorage.setItem('sessionToken', token);
+        }
+
+        function clearSession() {
+            localStorage.removeItem('sessionToken');
+        }
+
+        function isAuth() {
+            return !!getSessionToken();
+        }
+
+        async function login(webAppUrl, app, password) {
+            try {
+                const resp = await fetch(`${webAppUrl}?app=auth&type=${app}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ password: password })
+                });
+                
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Login fallito');
+                }
+
+                setSessionToken(data.token);
+                return true;
+            } catch (err) {
+                console.error('Errore login:', err);
+                return false;
+            }
+        }
+
+        /**
+         * Ensure there's an active session token. If not, prompt for password
+         * and attempt to login (which will set sessionToken on success).
+         * Returns true when authenticated, false otherwise.
+         */
+        async function ensureAuthenticated(webAppUrl, appName) {
+            const token = getSessionToken();
+            if (token) return true;
+
+            const pwd = window.prompt('Inserisci la password operatore per procedere:');
+            if (!pwd) return false;
+
+            const ok = await login(webAppUrl, appName || 'system', pwd);
+            return !!ok;
+        }
+
+        // Non richiedere il login solo per la visualizzazione.
+        // Se l'utente non è autenticato, mostriamo un piccolo avviso con link per accedere
+        (function(){
+            const logged = isAuth();
+            if (!logged) {
+                try {
+                    const right = document.querySelector('.page-header-right');
+                    if (right) {
+                        const info = document.createElement('div');
+                        info.className = 'small-note';
+                        info.style.color = '#9ca3af';
+                        info.style.fontSize = '12px';
+                        info.innerHTML = 'Visualizzazione pubblica — Accedi per modifiche';
+                        right.appendChild(info);
+                    }
+                } catch (e) { /* ignore DOM errors */ }
+            }
+        })();
+
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const PRENOTAZIONI_GID = '1372958227';
         const DISDETTE_GID = '692494043';
@@ -413,6 +493,8 @@
 
         setTimeout(loadOccupiedCameras, 500);
 
+    // La gestione del token è ora integrata in questa pagina (sessionToken in localStorage)
+
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -436,12 +518,21 @@
                 checkOut: checkOut.value,
                 polizza: polizza.value,
                 dipendente: dipendenteSelect.value,
-                elaboratoDa: window.currentUserEmail || dipendenteSelect.value,
                 giorniPoseidon: giorniPoseidon.value,
                 prezzoCamera: prezzoCameraRiassunto.textContent,
                 prezzoPolizza: prezzoPolizzaRiassunto.textContent,
                 totalePrenotazione: totaleRiassunto.textContent
             };
+
+            // Verifica la sessione usando il nuovo sistema
+            const authenticated = await ensureAuthenticated(webAppUrl, 'prenota');
+            if (!authenticated) {
+                messageDiv.textContent = 'Operazione annullata: autenticazione richiesta.';
+                messageDiv.className = 'message error';
+                setTimeout(() => { messageDiv.className = 'message'; }, 4000);
+                return;
+            }
+            const token = getSessionToken();
 
             const urlEncodedData = new URLSearchParams(dataToSend);
 
@@ -449,7 +540,11 @@
                 const response = await fetch(webAppUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                    body: new URLSearchParams(Object.assign({ app: 'prenotazioni', append: 'true' }, Object.fromEntries(urlEncodedData)))
+                    body: new URLSearchParams(Object.assign({ 
+                        app: 'prenotazioni', 
+                        append: 'true', 
+                        token: token 
+                    }, Object.fromEntries(urlEncodedData)))
                 });
 
                 messageDiv.textContent = '✓ Registrazione salvata con successo!';
