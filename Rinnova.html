@@ -325,34 +325,9 @@
         </form>
     </div>
 
-    
     <script>
-        // Auth System (minimo integrato per questa pagina)
-        const AUTH_TYPES = { SYSTEM: 'system', DISDETTE: 'disdette' };
-        function getSessionToken() { return localStorage.getItem('sessionToken'); }
-        function setSessionToken(t) { localStorage.setItem('sessionToken', t); }
-        function clearSession() { localStorage.removeItem('sessionToken'); }
-        function isAuth() { return !!getSessionToken(); }
-        // Non richiedere il login solo per la visualizzazione.
-        (function(){
-            const logged = isAuth();
-            if (!logged) {
-                try {
-                    const right = document.querySelector('.page-header-right');
-                    if (right) {
-                        const info = document.createElement('div');
-                        info.className = 'small-note';
-                        info.style.color = '#9ca3af';
-                        info.style.fontSize = '12px';
-                        info.innerHTML = 'Visualizzazione pubblica — Accedi per modifiche';
-                        right.appendChild(info);
-                    }
-                } catch (e) { /* ignore DOM errors */ }
-            }
-        })();
-
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzt2O-4Je74ZQnRW8GNBEVq6IwNFO4eP5LTDEEVxDWe5NIkwy_r-VrcTFr-1EIKCQcG/exec';
 
         const form = document.getElementById('rinnovoForm');
         const verificaBtn = document.getElementById('verificaBtn');
@@ -711,22 +686,6 @@
 
         document.getElementById('giorniPoseidon').addEventListener('input', updateSummary);
 
-        async function promptPasswordForAction(maxAttempts = 3) {
-            for (let i = 0; i < maxAttempts; i++) {
-                const pwd = window.prompt('Inserisci la password operatore per registrare questa azione:');
-                if (!pwd) return null; // cancelled
-                try {
-                    const resp = await fetch(`${WEB_APP_URL}?app=checkPassword&password=${encodeURIComponent(pwd)}&page=rinnova`);
-                    const data = await resp.json();
-                    if (data && data.success && data.author) return data.author;
-                } catch (err) {
-                    console.error('Errore validazione password:', err);
-                }
-                alert('Password non valida, riprova.');
-            }
-            return null;
-        }
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -774,16 +733,6 @@
                     
                     append: true 
                 };
-
-                // Prompt per password operatore e includi Autore
-                const author = await promptPasswordForAction();
-                if (!author) {
-                    showMessage('Operazione annullata: password non fornita o non valida', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Registra Rinnovo';
-                    return;
-                }
-                dataToSend.Autore = author;
 
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
