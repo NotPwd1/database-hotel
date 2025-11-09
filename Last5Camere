@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultime 5 Camere Vendute</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        .room-list {
+            list-style: none;
+            padding: 0;
+        }
+        .room-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .room-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #22303b;
+            margin-bottom: 6px;
+        }
+        .room-details {
+            font-size: 13px;
+            color: #666;
+        }
+        #lastRoomsLoading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        #lastRoomsError {
+            padding: 15px;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: #991b1b;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border: 3px solid rgba(0,0,0,0.3);
+            border-top-color: #666;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .login-box {
+            max-width: 340px;
+            margin: 40px auto 0 auto;
+            padding: 32px 24px;
+            background: #f8fafc;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            text-align: center;
+        }
+        .login-box label {
+            display: block;
+            margin-bottom: 8px;
+            color: #22303b;
+            font-weight: 600;
+        }
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .login-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .login-error {
+            color: #991b1b;
+            background: #fee2e2;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align:center; margin-bottom:24px; color:#22303b;"></h2>
+        <div id="loginBox" class="login-box" style="display:none;">
+            <form id="loginForm">
+                <label for="password">Password di accesso</label>
+                <input type="password" id="password" name="password" required placeholder="Inserisci la password">
+                <div id="loginError" class="login-error"></div>
+                <button type="submit" id="loginBtn">Accedi</button>
+            </form>
+        </div>
+        <ul id="lastRoomsList" class="room-list" style="display:none;"></ul>
+        <div id="lastRoomsLoading" style="display:none;">Caricamento... <span class="loading-spinner"></span></div>
+        <div id="lastRoomsError"></div>
+    </div>
+    <script>
+        // Auth System
+        const AUTH_TYPES = {
+            SYSTEM: 'system',
+            DISDETTE: 'disdette'
+        };
+
+        function getSessionToken() {
+            return localStorage.getItem('sessionToken');
+        }
+
+        function setSessionToken(token) {
+            localStorage.setItem('sessionToken', token);
+        }
+
+        function clearSession() {
+            localStorage.removeItem('sessionToken');
+        }
+
+        function isAuth() {
+            return !!getSessionToken();
+        }
+
+        async function login(webAppUrl, app, password) {
+            try {
+                const resp = await fetch(`${webAppUrl}?app=auth&type=${app}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ password: password })
+                });
+                
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Login fallito');
+                }
+
+                setSessionToken(data.token);
+                return true;
+            } catch (err) {
+                console.error('Errore login:', err);
+                const loginError = document.getElementById('loginError');
+                if (loginError) {
+                    loginError.textContent = 'Login fallito: ' + (err.message || err);
+                    loginError.style.display = 'block';
+                }
+                return false;
+            }
+        }
+
+        // Main App
+        (function(){
+            const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
+            const listEl = document.getElementById('lastRoomsList');
+            const loadingEl = document.getElementById('lastRoomsLoading');
+            const errEl = document.getElementById('lastRoomsError');
+            const loginBox = document.getElementById('loginBox');
+            const loginForm = document.getElementById('loginForm');
+            const loginBtn = document.getElementById('loginBtn');
+            const passwordInput = document.getElementById('password');
+            const loginError = document.getElementById('loginError');
+
+            function showLogin() {
+                loginBox.style.display = 'block';
+                listEl.style.display = 'none';
+                loadingEl.style.display = 'none';
+                errEl.style.display = 'none';
+                passwordInput.value = '';
+                loginError.style.display = 'none';
+                setTimeout(() => passwordInput.focus(), 100);
+            }
+
+            function showRooms() {
+                loginBox.style.display = 'none';
+                listEl.style.display = 'block';
+            }
+
+            async function loadLastRooms() {
+                // Verifica autenticazione sistema
+                if (!isAuth(AUTH_TYPES.SYSTEM)) {
+                    showLogin();
+                    return;
+                }
+                try {
+                    loadingEl.style.display = 'block';
+                    listEl.style.display = 'none';
+                    errEl.style.display = 'none';
+
+                    const token = getSessionToken();
+                    // Guard against token being undefined or the string "undefined"
+                    if (!token || token === 'undefined') {
+                        clearSession();
+                        showLogin();
+                        return;
+                    }
+
+                    // If the page is embedded in a Google Sites iframe (googleusercontent),
+                    // fetch will be blocked by CORS. Use a JSONP fallback when embedded.
+                    const isEmbedded = /googleusercontent\.com$/.test(window.location.hostname) || window.self !== window.top;
+                    let payload;
+                    if (isEmbedded) {
+                        payload = await new Promise((resolve, reject) => {
+                            const callbackName = 'lastrooms_cb_' + Math.random().toString(36).slice(2,9);
+                            const timeoutId = setTimeout(() => {
+                                window[callbackName] = () => {};
+                                reject(new Error('Timeout JSONP'));
+                            }, 15000);
+                            window[callbackName] = (data) => {
+                                clearTimeout(timeoutId);
+                                try { resolve(data); } finally { try { delete window[callbackName]; } catch(e){} }
+                            };
+                            const script = document.createElement('script');
+                            script.src = `${WEB_APP_URL}?app=lastrooms&limit=5&token=${encodeURIComponent(token)}&callback=${callbackName}`;
+                            script.onerror = (e) => {
+                                clearTimeout(timeoutId);
+                                try { delete window[callbackName]; } catch(e){}
+                                reject(new Error('JSONP script error'));
+                            };
+                            document.head.appendChild(script);
+                        });
+                    } else {
+                        const resp = await fetch(`${WEB_APP_URL}?app=lastrooms&limit=5&token=${encodeURIComponent(token)}`);
+                        if (!resp.ok) {
+                            if (resp.status === 401) {
+                                clearSession();
+                                showLogin();
+                                return;
+                            }
+                            throw new Error('HTTP ' + resp.status);
+                        }
+                        payload = await resp.json();
+                    }
+                    if (!payload || !payload.success) throw new Error(payload && payload.error ? payload.error : 'Risposta non valida');
+
+                    const rows = payload.data || [];
+                    listEl.innerHTML = '';
+                    if (rows.length === 0) {
+                        listEl.innerHTML = '<li class="room-item" style="text-align:center;">Nessuna prenotazione recente trovata.</li>';
+                    } else {
+                        rows.forEach(r => {
+                            const li = document.createElement('li');
+                            li.className = 'room-item';
+                            li.innerHTML = `<div class=\"room-title\">Cam ${escapeHtml(r.Camera || '')} — ${escapeHtml(r.Cliente || '')}</div>
+                                <div class=\"room-details\">Check-in: ${escapeHtml(r.CheckIn || '-')} • Check-out: ${escapeHtml(r.CheckOut || '-')} • Autore: ${escapeHtml(r.Autore || '-')} ${r.Rinnovato ? ' • (Rinnovato)' : ''}</div>`;
+                            listEl.appendChild(li);
+                        });
+                    }
+                    showRooms();
+                } catch (err) {
+                    console.error('Errore caricamento ultime camere:', err);
+                    errEl.textContent = 'Impossibile caricare le ultime camere: ' + (err.message || err) + '\n(Se sei su Google Sites, il server deve esporre una risposta JSONP usando il parametro "callback" o aggiungere header CORS lato server)';
+                    errEl.style.display = 'block';
+                } finally {
+                    loadingEl.style.display = 'none';
+                }
+            }
+
+            function escapeHtml(s) {
+                if (!s && s !== 0) return '';
+                return String(s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]; });
+            }
+
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const pwd = passwordInput.value.trim();
+                if (!pwd) {
+                    loginError.textContent = 'Inserisci la password';
+                    loginError.style.display = 'block';
+                    passwordInput.focus();
+                    return;
+                }
+
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Verifica...';
+                loginError.style.display = 'none';
+
+                const authenticated = await login(WEB_APP_URL, 'lastrooms', pwd);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Accedi';
+
+                if (authenticated) {
+                    // clear password for safety and load rooms
+                    passwordInput.value = '';
+                    loadLastRooms();
+                }
+            });
+
+            // Logout su doppio click sul titolo
+            document.querySelector('h2').addEventListener('dblclick', async function() {
+                const token = getSessionToken();
+                if (token) {
+                    try {
+                        await fetch(`${WEB_APP_URL}?app=logout&token=${encodeURIComponent(token)}`);
+                    } catch (e) {
+                        console.warn('Errore logout:', e);
+                    }
+                }
+                clearSession();
+                showLogin();
+            });
+
+            // Avvio
+            window.addEventListener('load', function() {
+                const token = getSessionToken();
+                if (token) {
+                    loadLastRooms();
+                    setInterval(loadLastRooms, 60000);
+                } else {
+                    showLogin();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
