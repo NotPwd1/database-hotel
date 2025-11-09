@@ -47,7 +47,9 @@
             <h1>Salty Sands Hotel</h1>
             <p class="page-subtitle">Sistema di registrazione e gestione dell'hotel</p>
         </div>
-        <div class="page-header-right"></div>
+        <div class="page-header-right">
+            <div class="small-note">Pannello di controllo</div>
+        </div>
     </header>
 
     <div class="dashboard">
@@ -75,30 +77,6 @@
     </div>
 
     <script>
-        // Auth System
-        const AUTH_TYPES = {
-            SYSTEM: 'system',
-            DISDETTE: 'disdette'
-        };
-
-        function getSessionToken() {
-            return localStorage.getItem('sessionToken');
-        }
-
-        function setSessionToken(token) {
-            localStorage.setItem('sessionToken', token);
-        }
-
-        function clearSession() {
-            localStorage.removeItem('sessionToken');
-        }
-
-        function isAuth() {
-            return !!getSessionToken();
-        }
-
-        // La Home è visibile pubblicamente; le operazioni di scrittura richiedono autenticazione.
-
         const sheetId = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
         const PRENOTAZIONI_GID = '1372958227';
         const DISDETTE_GID = '692494043';
