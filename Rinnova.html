@@ -325,9 +325,34 @@
         </form>
     </div>
 
+    
     <script>
+        // Auth System (minimo integrato per questa pagina)
+        const AUTH_TYPES = { SYSTEM: 'system', DISDETTE: 'disdette' };
+        function getSessionToken() { return localStorage.getItem('sessionToken'); }
+        function setSessionToken(t) { localStorage.setItem('sessionToken', t); }
+        function clearSession() { localStorage.removeItem('sessionToken'); }
+        function isAuth() { return !!getSessionToken(); }
+        // Non richiedere il login solo per la visualizzazione.
+        (function(){
+            const logged = isAuth();
+            if (!logged) {
+                try {
+                    const right = document.querySelector('.page-header-right');
+                    if (right) {
+                        const info = document.createElement('div');
+                        info.className = 'small-note';
+                        info.style.color = '#9ca3af';
+                        info.style.fontSize = '12px';
+                        info.innerHTML = 'Visualizzazione pubblica — Accedi per modifiche';
+                        right.appendChild(info);
+                    }
+                } catch (e) { /* ignore DOM errors */ }
+            }
+        })();
+
         const SHEET_ID = '1ygcJnTd6p9yX7x8XP3bZvMdNvYbaxLRBP_QBcaRNc50';
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby7VE5dY4lCa_KAAnAaq_IVQoGvupRy5TWncIjO1ByQlFsunwsi8hgiZyiDtqG323L7/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwR8QTFPwKxmJMuWaC3bt4GSVosVY-0yZdbvcgObbCbVRD15tDawyDfL3x2jMMt9Ek/exec';
 
         const form = document.getElementById('rinnovoForm');
         const verificaBtn = document.getElementById('verificaBtn');
@@ -435,13 +460,20 @@
             let polizzaSelezionata = polizzaSelect.value || getValueRobust(prenotazioneCorrente, ['Polizza', 'polizza'], '//');
             if (!polizzaSelezionata) polizzaSelezionata = '//';
 
-            let prezzoPolizza = prezziPolizze[polizzaSelezionata] || 0;
-            if (polizzaSelezionata === 'Poseidon') {
-                const giorniPoseidon = parseInt(giorniPoseidonInput.value) || 0;
-                const giorniExtra = Math.max(0, giorniPoseidon - 1);
-                const incremento = Math.floor(1275 * 0.02 * giorniExtra);
-                prezzoPolizza = prezziPolizze['Poseidon'] + incremento;
+            const polizzaPrecedente = getValueRobust(prenotazioneCorrente, ['Polizza', 'polizza'], '//');
+            let prezzoPolizza = 0;
+            
+            // Se la polizza è diversa dalla precedente, va pagata
+            if (polizzaSelezionata !== polizzaPrecedente && polizzaSelezionata !== '//') {
+                prezzoPolizza = prezziPolizze[polizzaSelezionata] || 0;
+                if (polizzaSelezionata === 'Poseidon') {
+                    const giorniPoseidon = parseInt(giorniPoseidonInput.value) || 0;
+                    const giorniExtra = Math.max(0, giorniPoseidon - 1);
+                    const incremento = Math.floor(1275 * 0.02 * giorniExtra);
+                    prezzoPolizza = prezziPolizze['Poseidon'] + incremento;
+                }
             }
+            // Se è la stessa polizza o non c'è polizza: prezzoPolizza = 0
 
             const totale = Math.floor((prezzoCamera + prezzoPolizza) * 100) / 100;
 
@@ -679,6 +711,22 @@
 
         document.getElementById('giorniPoseidon').addEventListener('input', updateSummary);
 
+        async function promptPasswordForAction(maxAttempts = 3) {
+            for (let i = 0; i < maxAttempts; i++) {
+                const pwd = window.prompt('Inserisci la password operatore per registrare questa azione:');
+                if (!pwd) return null; // cancelled
+                try {
+                    const resp = await fetch(`${WEB_APP_URL}?app=checkPassword&password=${encodeURIComponent(pwd)}&page=rinnova`);
+                    const data = await resp.json();
+                    if (data && data.success && data.author) return data.author;
+                } catch (err) {
+                    console.error('Errore validazione password:', err);
+                }
+                alert('Password non valida, riprova.');
+            }
+            return null;
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -726,6 +774,16 @@
                     
                     append: true 
                 };
+
+                // Prompt per password operatore e includi Autore
+                const author = await promptPasswordForAction();
+                if (!author) {
+                    showMessage('Operazione annullata: password non fornita o non valida', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Registra Rinnovo';
+                    return;
+                }
+                dataToSend.Autore = author;
 
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
